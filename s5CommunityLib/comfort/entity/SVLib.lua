@@ -1,6 +1,3 @@
--- Stuff made by schmeling
--- https://github.com/mcb5637/s5CommunityLib/blob/master/comfort/entity/SVLib.lua
-
 SVLib = {}
 
 --Test auf HistoryEdition oder GoldEdition

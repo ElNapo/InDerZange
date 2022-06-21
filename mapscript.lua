@@ -9,6 +9,10 @@
 Script.Load( Folders.MapTools.."Main.lua" )
 IncludeGlobals("MapEditorTools")
 
+Script.Load("maps//user//InDerZange//s5CommunityLib//packer//devLoad.lua")
+mcbPacker.Paths[1][1] = "maps//user//InDerZange//"
+mcbPacker.require("s5CommunityLib/comfort/entity/SVLib")
+mcbPacker.require("s5CommunityLib/lib/UnlimitedArmy")	
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called from main script to initialize the diplomacy states
 -- IDs:
