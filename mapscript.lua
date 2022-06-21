@@ -9,10 +9,6 @@
 Script.Load( Folders.MapTools.."Main.lua" )
 IncludeGlobals("MapEditorTools")
 
-Script.Load("maps//user//InDerZange//s5CommunityLib//packer//devLoad.lua")
-mcbPacker.Paths[1][1] = "maps//user//InDerZange//"
-mcbPacker.require("s5CommunityLib/comfort/entity/SVLib")
-mcbPacker.require("s5CommunityLib/lib/UnlimitedArmy")	
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called from main script to initialize the diplomacy states
 -- IDs:
@@ -39,6 +35,7 @@ end
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called to setup Technology states on mission start
 function InitTechnologies()
+    ForbidTechnology(Technologies.UP1_Market)
 end
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -71,6 +68,11 @@ end
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called on game start after all initialization is done
 function FirstMapAction()
+    Script.Load("maps//user//InDerZange//s5CommunityLib//packer//devLoad.lua")
+    mcbPacker.Paths[1][1] = "maps//user//InDerZange//"
+    mcbPacker.require("s5CommunityLib/comfort/entity/SVLib")
+    mcbPacker.require("s5CommunityLib/lib/UnlimitedArmy")	
+    TriggerFix.AllScriptsLoaded()
     -- Load and activate comforts
     Script.LoadFolder('maps//user//InDerZange//Tools')
     InitMines()
@@ -86,7 +88,8 @@ function FirstMapAction()
     RightSide.DecorateBanditMain()
     RightSide.DecorateGate()
     RightSide.DecorateBase()
-    RightSide.CreateBanditArmies()
+    --RightSide.CreateBanditArmies()
+    RightSide.CreateBanditArmiesUA()
 
     -- Start briefing
     RightSide.StartInitialBriefing()
@@ -319,70 +322,152 @@ function RightSide.OnRuinDestroyed( _pos)
         AI.Entity_CreateFormation( 3, Entities.CU_Evil_LeaderBearman1, Entities.CU_Evil_SoldierBearman1, 16, _pos.X, _pos.Y, 0, 0, 0)
     end
 end
-function RightSide.CreateBanditArmies()
-    MapEditor_SetupAI(3, 1, 0, 0, "RS_BanditMain1", 0, 0)
-    -- Setup defenders
-    RightSide.armyOutpostDefend = {
-        player = 3,
-        id = 3,
-        strength = 8,
-        position = GetPosition("RS_BanditOutpostSpawn"),
-        rodeLength = 3000,
-        beAgressive = true
-    }
-    SetupArmy( RightSide.armyOutpostDefend)
-    local troopDescBow = {
-        maxNumberOfSoldiers = 4,
-        experiencePoints = LOW_EXPERIENCE,
-        leaderType = Entities.CU_BanditLeaderBow1
-    }
-    local troopDescSword = {
-        maxNumberOfSoldiers = 8,
-        experiencePoints = LOW_EXPERIENCE,
-        leaderType = Entities.CU_BanditLeaderSword2
-    }
-    local troopDescClub = {
-        maxNumberOfSoldiers = 8,
-        experiencePoints = LOW_EXPERIENCE,
-        leaderType = Entities.CU_Barbarian_LeaderClub2
-    }
-    for i = 1,2 do
-        EnlargeArmy( RightSide.armyOutpostDefend, troopDescBow)
-        EnlargeArmy( RightSide.armyOutpostDefend, troopDescSword)
-        EnlargeArmy( RightSide.armyOutpostDefend, troopDescClub)
-    end
-    EnlargeArmy( RightSide.armyOutpostDefend, troopDescSword)
-    EnlargeArmy( RightSide.armyOutpostDefend, troopDescClub)
-    -- RS_BanditSteamMachine
-    -- RS_BanditOutpostBombSpot
-    -- RS_BanditOutpostPatrolPoint
-    AI.Army_AddWaypoint( RightSide.armyOutpostDefend.player, RightSide.armyOutpostDefend.id, GetEntityId("RS_BanditSteamMachine"))
-    AI.Army_AddWaypoint( RightSide.armyOutpostDefend.player, RightSide.armyOutpostDefend.id, GetEntityId("RS_BanditOutpostBombSpot"))
-    AI.Army_AddWaypoint( RightSide.armyOutpostDefend.player, RightSide.armyOutpostDefend.id, GetEntityId("RS_BanditOutpostPatrolPoint"))
 
-    -- Setup patrolling troups
-    RightSide.armyOutpostPatrol = {
-        player = 3,
-        id = 4,
-        strength = 6,
-        position = GetPosition("RS_BanditOutpostSpawn"),
-        rodeLength = 3000,
-        beAgressive = true
+RightSide.BanditOutpostDefendFullStrength = {
+    {type = Entities.CU_BanditLeaderSword2, nSol = 8},
+    {type = Entities.CU_BanditLeaderSword2, nSol = 8},
+    {type = Entities.CU_BanditLeaderSword2, nSol = 8},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4}
+}
+RightSide.BanditOutpostDefendMinStrength = 5
+RightSide.BanditOutpostPatrolFullStrength = {
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4}
+}
+
+function RightSide.CreateBanditArmiesUA()
+    -- First defending army
+    RightSide.armyOutpostDefend = UnlimitedArmy:New{
+        Player = 3,
+        Area = 3500,
+        --TransitAttackMove
+        Formation = UnlimitedArmy.Formations.Chaotic,
+        LeaderFormation = LeaderFormatons.LF_Fight,
+        DoNotNormalizeSpeed = true
     }
-    SetupArmy( RightSide.armyOutpostPatrol)
-    for i = 1,3 do
-        EnlargeArmy( RightSide.armyOutpostPatrol, troopDescBow)
-        EnlargeArmy( RightSide.armyOutpostPatrol, troopDescClub)
+    local spawnPos = GetPosition("RS_BanditOutpostSpawn")
+    for k,entry in pairs(RightSide.BanditOutpostDefendFullStrength) do
+        RightSide.armyOutpostDefend:CreateLeaderForArmy( entry.type, entry.nSol, spawnPos, LOW_EXPERIENCE)
     end
-    AI.Army_AddWaypoint( RightSide.armyOutpostPatrol.player, RightSide.armyOutpostPatrol.id, GetEntityId("RS_WayWaypoint1")) 
-    AI.Army_AddWaypoint( RightSide.armyOutpostPatrol.player, RightSide.armyOutpostPatrol.id, GetEntityId("RS_WayWaypoint2")) 
-    AI.Army_AddWaypoint( RightSide.armyOutpostPatrol.player, RightSide.armyOutpostPatrol.id, GetEntityId("RS_BanditOutpostSpawn")) 
-    AI.Army_AddWaypoint( RightSide.armyOutpostPatrol.player, RightSide.armyOutpostPatrol.id, GetEntityId("RS_WayWaypoint2")) 
-    AI.Army_AddWaypoint( RightSide.armyOutpostPatrol.player, RightSide.armyOutpostPatrol.id, GetEntityId("RS_WayWaypoint3")) 
-    StartSimpleJob("RightSide_ControlBandits")
+    local patrolPoint1 = GetPosition("RS_BanditSteamMachine")
+    local patrolPoint2 = GetPosition("RS_BanditOutpostBombSpot")
+    local patrolPoint3 = GetPosition("RS_BanditOutpostPatrolPoint")
+    
+    RightSide.armyOutpostDefend:AddCommandMove( patrolPoint1, true)
+    RightSide.armyOutpostDefend:AddCommandWaitForIdle(true)
+    --RightSide.armyOutpostPatrol:AddCommandWaitForTroopSize( 1, false, true)
+    RightSide.armyOutpostDefend:AddCommandMove( patrolPoint2, true)
+    RightSide.armyOutpostDefend:AddCommandWaitForIdle(true)
+    RightSide.armyOutpostDefend:AddCommandMove( patrolPoint3, true)
+    RightSide.armyOutpostDefend:AddCommandWaitForIdle(true)
+
+    -- Then patrolling army
+    RightSide.armyOutpostPatrol = UnlimitedArmy:New{
+        Player = 3,
+        Area = 3500,
+        --TransitAttackMove
+        Formation = UnlimitedArmy.Formations.Chaotic,
+        LeaderFormation = LeaderFormatons.LF_Fight,
+        DoNotNormalizeSpeed = true
+    }
+
+    for k,entry in pairs(RightSide.BanditOutpostPatrolFullStrength) do
+        RightSide.armyOutpostPatrol:CreateLeaderForArmy( entry.type, entry.nSol, spawnPos, LOW_EXPERIENCE)
+    end
+    local waypoint1 = GetPosition("RS_WayWaypoint1")
+    local waypoint2 = GetPosition("RS_WayWaypoint2")
+    local waypoint3 = GetPosition("RS_BanditOutpostSpawn")
+    local waypoint4 = GetPosition("RS_WayWaypoint2")
+    local waypoint5 = GetPosition("RS_WayWaypoint3")
+    
+    RightSide.armyOutpostPatrol:AddCommandMove( waypoint1, true)
+    RightSide.armyOutpostPatrol:AddCommandWaitForIdle(true)
+    RightSide.armyOutpostPatrol:AddCommandMove( waypoint2, true)
+    RightSide.armyOutpostPatrol:AddCommandWaitForIdle(true)
+    RightSide.armyOutpostPatrol:AddCommandMove( waypoint3, true)
+    RightSide.armyOutpostPatrol:AddCommandWaitForIdle(true)
+    --RightSide.armyOutpostPatrol:AddCommandWaitForTroopSize( 3, false, true)
+    RightSide.armyOutpostPatrol:AddCommandMove( waypoint4, true)
+    RightSide.armyOutpostPatrol:AddCommandWaitForIdle(true)
+    RightSide.armyOutpostPatrol:AddCommandMove( waypoint5, true)
+    RightSide.armyOutpostPatrol:AddCommandWaitForIdle(true)
+    StartSimpleJob("RightSide_ControlOutpostBandits")
+
+    -- now for the main bandit army
+    -- use some technologies to make army stronger?
+
 end
+-- want the following behavior:
+-- defender respawns up to 1/3rds of original strength, respawn troops instantly
+-- patrols regenerate slowly, one troop per 30 secs
 RightSide.OutpostRemoved = false
-RightSide.OutpostPatrolRespawnCounter = 12
+RightSide.OutpostPatrolRespawnCounter = 6
+RightSide.OutpostPatrolRespawnCounterMax = 6
+RightSide.OutpostPatrolPointer = 0
+RightSide.OutpostDefenderRespawnPointer = 0
+function RightSide_ControlOutpostBandits()
+    if Counter.Tick2("RightSide_ControlBanditsOutpost", 5) then
+        -- first check if outpost is removed
+        if not RightSide.OutpostRemoved then
+            local allDead = true
+            for j = 1, 7 do
+                if IsAlive(RightSide.FirstCampEntities[j]) then
+                    allDead = false
+                    break
+                end
+            end
+            if allDead then
+                RightSide.OutpostRemoved = true
+            end
+        end
+
+        -- now try to manage actual armies
+        -- if everything is gone => destruct everything!
+        if RightSide.OutpostRemoved and RightSide.armyOutpostDefend:IsDead() and RightSide.armyOutpostPatrol:IsDead() then
+            RightSide.armyOutpostDefend:Destroy()
+            RightSide.armyOutpostPatrol:Destroy()
+            return true
+        end
+
+        -- if outpost is destroyed => no need to spawn new troops, stop here
+        if RightSide.OutpostRemoved then return end
+
+        -- interesting setting: outpost still alive
+        -- manage defenders, respawn one instantly if something is amiss
+        if RightSide.armyOutpostDefend:GetSize(true,true) < RightSide.BanditOutpostDefendMinStrength then
+            local N = table.getn(RightSide.BanditOutpostDefendFullStrength)
+            RightSide.OutpostDefenderRespawnPointer = math.mod(RightSide.OutpostDefenderRespawnPointer,N) + 1
+            local entry = RightSide.BanditOutpostDefendFullStrength[RightSide.OutpostDefenderRespawnPointer]
+            local spawnPos = GetPosition("RS_BanditOutpostSpawn")
+            RightSide.armyOutpostDefend:CreateLeaderForArmy( entry.type, entry.nSol, spawnPos, LOW_EXPERIENCE)
+        end
+
+        -- manage patrols, respawn them more slowly but to full strength
+        local N = table.getn(RightSide.BanditOutpostPatrolFullStrength)
+        if N > RightSide.armyOutpostPatrol:GetSize(true,true) then
+            RightSide.OutpostPatrolRespawnCounter = RightSide.OutpostPatrolRespawnCounter - 1
+            if RightSide.OutpostPatrolRespawnCounter == 0 then
+                RightSide.OutpostPatrolRespawnCounter = RightSide.OutpostPatrolRespawnCounterMax
+                -- in this setting: spawn troop
+                RightSide.OutpostPatrolPointer = math.mod(RightSide.OutpostPatrolPointer,N)+1
+                local entry = RightSide.BanditOutpostPatrolFullStrength[RightSide.OutpostPatrolPointer]
+                local spawnPos = GetPosition("RS_BanditOutpostSpawn")
+                RightSide.armyOutpostPatrol:CreateLeaderForArmy( entry.type, entry.nSol, spawnPos, LOW_EXPERIENCE)
+                RightSide.armyOutpostPatrol:SetTarget(spawnPos )
+                --RightSide.armyOutpostPatrol:SetReMove(true)
+            end
+        end
+    end
+end
 function RightSide_ControlBandits()
     if Counter.Tick2("RightSide_ControlBandits", 5) then
         -- first check if outpost is removed
@@ -743,6 +828,8 @@ function RightSide_IsBanditMainDestroyed()
             end
         end
         Message("Das Hauptquartier wurde zerstört!")
+        --Message("Darin war ein Schlüssel zum abgeschlossenen Siedlungsplatz!")
+        --ReplaceEntity("RS_VCGate")
         Sound.PlayGUISound( Sounds.fanfare)
         local quest = {
             title = "Besiegt die Banditen",
