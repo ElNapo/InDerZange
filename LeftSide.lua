@@ -1,0 +1,2 @@
+LeftSide = {}
+LeftSide.ReadyForAttack = false
