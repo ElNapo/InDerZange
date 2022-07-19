@@ -94,7 +94,8 @@ function WarriorMPComforts.GetNexColorRGB()
 	return entry[1], entry[2], entry[3]
 end
 function WarriorMPComforts.ApplyColor()
-	Display.SetPlayerColorMapping( GUI.GetPlayerID(), WarriorMPComforts.CurrColor)
+	Display.SetPlayerColorMapping( 1, WarriorMPComforts.CurrColor)
+	Display.SetPlayerColorMapping( 2, WarriorMPComforts.CurrColor)
 	local r,g,b = GUI.GetPlayerColor( GUI.GetPlayerID() )
 	--LuaDebugger.Log("["..WarriorMPComforts.CurrColor.."] = {"..r..", "..g..", "..b.."},")
 	XGUIEng.SetMaterialColor("Buy_Hero", 0, r, g, b, 255)

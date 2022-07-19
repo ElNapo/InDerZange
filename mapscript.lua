@@ -19,6 +19,8 @@ IncludeGlobals("MapEditorTools")
 -- 5, 6, 7: Currently unused, maybe for left side quests?
 -- 8: General population
 function InitDiplomacy()
+    Logic.SetShareExplorationWithPlayerFlag( 1, 2, 1)
+    Logic.SetShareExplorationWithPlayerFlag( 2, 1, 1)
     SetHostile(1,3)
 
     SetPlayerName(3, "Banditen")
@@ -84,6 +86,7 @@ function FirstMapAction()
     WarriorTime.Init()
     SW.QoL.Init()
     MakeEyecandyDestroyable()
+    Playerswapper.Init()
 
     Script.Load("maps//user//InDerZange//RightSide.lua")
     Script.Load("maps//user//InDerZange//LeftSide.lua")
@@ -99,15 +102,17 @@ function FirstMapAction()
     -- Start briefing
     RightSide.StartInitialBriefing()
 
+    LeftSide.StartInitialBriefing()
+
     
     -- Debug stuff
     --Game.GameTimeSetFactor(5)
-    Camera.ZoomSetFactorMax(1.5)
+--[[     Camera.ZoomSetFactorMax(1.5)
     Tools.GiveResouces(1,100000,100000,100000,100000,100000,100000)
     ResearchAllUniversityTechnologies(1)
     Tools.ExploreArea(1,1,900)
     ResearchTechnology(Technologies.T_SuperTechnology)
-
+ ]]
 end
 Names = {
     Yuki = " @color:70,130,180 Yuki @color:255,255,255 ",
@@ -115,11 +120,15 @@ Names = {
     Erec = " @color:89,203,232 Erec @color:255,255,255 ",
     Pilgrim = " @color:89,203,232 Pilgrim @color:255,255,255 ",
     City = " @color:136,136,136 Tresernberg @color:255,255,255 ",
+    BadGuy = " @color:136,136,136 Graf Cernunnos @color:255,255,255 ",
+    BadGuyGenetiv = " @color:136,136,136 Grafen Cernunnos @color:255,255,255 ",
+    --BadGuy = "Ianuarius"
     Agent = " @color:15,64,255 Agent des Nachrichtendienstes Seiner Majestät @color:255,255,255 ",
     AgentDativ = " @color:15,64,255 Agenten des Nachrichtendienstes Seiner Majestät @color:255,255,255 ",
     AgentMasked = " @color:15,64,255 Kontaktperson @color:255,255,255 ",
     AgentMessage = " @color:15,64,255 Botschaft des Nachrichtendienstes Seiner Majestät @color:255,255,255 ",
     SpyOrga = " @color:15,64,255 Der Nachrichtendienst Seiner Majestät @color:255,255,255 ",
+    FakeSpyName = " @color:15,64,255 Joukahainen @color:255,255,255 ",
     Bandits = " @color:226,0,0 Banditen @color:255,255,255 ",
     BanditsSingular = " @color:226,0,0 Bandit @color:255,255,255 ",
     SteamEngine = " @color:226,0,0 Dampfmaschine @color:255,255,255 ",
@@ -131,6 +140,101 @@ Names = {
     MissionComplete = " @color:255,255,255,75 "
 
 }
+
+Playerswapper = {}
+Playerswapper.currId = 1
+Playerswapper.manualMode = false
+Playerswapper.KeyDownTime = 0
+Playerswapper.TicksKeyHoldDown = 0
+function Playerswapper.Init()
+    -- start swapper job
+    StartSimpleHiResJob("Playerswapper_Job")
+    -- restore things on save game loading
+    Playerswapper.InitPlayerColorMapping = InitPlayerColorMapping
+	InitPlayerColorMapping = function()
+		Playerswapper.SetControlledPlayer( Playerswapper.currId)
+		Playerswapper.InitPlayerColorMapping()
+	end
+    Input.KeyBindDown(Keys.Tab, "Playerswapper.OnKeyDown()", 2)	
+    Input.KeyBindUp( Keys.Tab, "Playerswapper.OnKeyUp()", 2)
+end
+function Playerswapper.OnKeyDown()
+    local myTime = Logic.GetTimeMs()
+    if myTime - Playerswapper.KeyDownTime >= 200 then
+        Playerswapper.TicksKeyHoldDown = 1
+    else
+        Playerswapper.TicksKeyHoldDown = Playerswapper.TicksKeyHoldDown + 1
+    end
+    Playerswapper.KeyDownTime = myTime
+end
+function Playerswapper.OnKeyUp()
+    local timeDiff = Logic.GetTimeMs() - Playerswapper.KeyDownTime
+    timeDiff = Playerswapper.TicksKeyHoldDown*100
+    --Message(timeDiff)
+    if timeDiff < 200 then
+        KeyBindings_ToggleOnScreenInformation()
+    elseif timeDiff < 2500 then
+        --Message("Der Spieler wurde gewechselt.")
+        if not Playerswapper.manualMode then
+            --Message("Der Spielerwechsel ist nun im manuellen Modus!")
+            Playerswapper.manualMode = true
+        end
+        Playerswapper.SwapPlayerId(3 - Playerswapper.currId)
+    else
+        if Playerswapper.manualMode then
+            --Message("Der Spielerwechsel ist nun im automatischen Modus!")
+            Playerswapper.manualMode = false
+        end
+    end
+--[[     LuaDebugger.Log("^ was pressed")
+    if XGUIEng.IsModifierPressed(Keys.ModifierControl) == 1 then
+        LuaDebugger.Log("^+Strg was pressed.")
+        if Playerswapper.manualMode then
+            Playerswapper.manualMode = false
+            Message("Der Spielerwechsel ist nun im automatischen Modus!")
+        else
+            Playerswapper.manualMode = true
+            Message("Der Spielerwechsel ist nun im manuellen Modus!")
+            Message("Dieser kann mit [Strg]+[^] deaktiviert werden.")
+        end
+    elseif XGUIEng.IsModifierPressed(Keys.ModifierShift) == 1 then
+        LuaDebugger.Log("^+Shift was pressed.")
+        if not Playerswapper.manualMode then
+            Message("Der Spielerwechsel ist nun im manuellen Modus!")
+            Message("Dieser kann mit [Strg]+[^] deaktiviert werden.")
+            Playerswapper.manualMode = true
+        end
+        Playerswapper.SwapPlayerId(3 - Playerswapper.currId)
+    end ]]
+end
+function Playerswapper_Job()
+    if not Playerswapper.manualMode then
+        local targetPlayerId = 0
+        local mX, mY = GUI.Debug_GetMapPositionUnderMouse() 
+        if mY < 14000 then
+            targetPlayerId = 1
+        else
+            targetPlayerId = 2
+        end
+        if targetPlayerId ~= Playerswapper.currId then
+            Playerswapper.SwapPlayerId( targetPlayerId)
+            --Message('Schalte kontrollierten Spieler um!')
+        end
+    end
+end
+function Playerswapper.SwapPlayerId( _newId)
+    Playerswapper.SetControlledPlayer( _newId)
+    Playerswapper.currId = _newId
+end
+function Playerswapper.SetControlledPlayer( _newId)
+    local oldPlayer = GUI.GetPlayerID()
+    GUI.SetControlledPlayer(_newId)
+    Logic.ActivateUpdateOfExplorationForAllPlayers()
+    gvMission.PlayerID = _newId
+    Logic.PlayerSetIsHumanFlag( oldPlayer, 0 )
+    Logic.PlayerSetIsHumanFlag( _newId, 1 )
+    Logic.PlayerSetGameStateToPlaying( _newId )
+end
 
 function MakeEyecandyDestroyable()
     local eyecandyTable = {
