@@ -23,6 +23,7 @@ function InitDiplomacy()
 
     SetPlayerName(3, "Banditen")
     SetPlayerName(4, "Tresernberg")
+    SetPlayerName(5, "Bauernsiedlung")
     SetPlayerName(8, "Bevölkerung")
 end
 
