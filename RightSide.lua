@@ -683,9 +683,9 @@ function RightSide.AgentBriefing()
             Distance = 250,
             Callback = function()
                 DestroyEntity("RS_CaravanGold")
-                AddGold(350)
-                AddWood(250)
-                AddClay(200)
+                AddGold(1, 350)
+                AddWood(1, 250)
+                AddClay(1, 200)
                 Message("Ein Teil Eurer Karawane hat sein Ziel erreicht!")
             end,
         }
@@ -695,9 +695,9 @@ function RightSide.AgentBriefing()
             Distance = 250,
             Callback = function()
                 DestroyEntity("RS_CaravanWood")
-                AddGold(350)
-                AddWood(250)
-                AddClay(200)
+                AddGold(1, 350)
+                AddWood(1, 250)
+                AddClay(1, 200)
                 Message("Ein Teil Eurer Karawane hat sein Ziel erreicht!")
             end,
         }
@@ -707,9 +707,9 @@ function RightSide.AgentBriefing()
             Distance = 250,
             Callback = function()
                 DestroyEntity("RS_CaravanClay")
-                AddGold(350)
-                AddWood(250)
-                AddClay(200)
+                AddGold(1, 350)
+                AddWood(1, 250)
+                AddClay(1, 200)
                 Message("Ein Teil Eurer Karawane hat sein Ziel erreicht!")
             end,
         }

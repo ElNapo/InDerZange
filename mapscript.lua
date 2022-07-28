@@ -81,7 +81,7 @@ function FirstMapAction()
     InitMines()
     ActivateBriefingsExpansion()
     ActivateAdvancedEscapeBlock()
-    BRIEFING_TIMER_PER_CHAR = 0.5
+    BRIEFING_TIMER_PER_CHAR = 0.001
     WarriorMPComforts.Init()
     WarriorTime.Init()
     SW.QoL.Init()
@@ -91,6 +91,8 @@ function FirstMapAction()
     Script.Load("maps//user//InDerZange//RightSide.lua")
     Script.Load("maps//user//InDerZange//LeftSide.lua")
 
+    -- Prep environment on left side
+    LeftSide.DoEnvironmentChanges()
     -- Prep environment on right side
     RightSide.CreateBanditCamp()
     RightSide.DecorateBanditMain()
@@ -137,9 +139,66 @@ Names = {
     Caspar = " @color:251,139,35 Caspar mit dem harten Stoff @color:255,255,255 ",
     CasparShort = " @color:251,139,35 Caspar @color:255,255,255 ",
     Sulfur = " @color:232,222,53 Schwefel @color:255,255,255 ",
-    MissionComplete = " @color:255,255,255,75 "
+    MissionComplete = " @color:255,255,255,75 ",
+    MercLeader = " @color:255,215,0 Anführer der Söldner @color:255,255,255 ",
+    Mercs = " @color:255,215,0 Söldner @color:255,255,255 ",
+    TraderLeader = " @color:65,105,225 Gildenmeister der Händlergilde @color:255,255,255 ",
+    StoneLeader = " @color:145,142,133 Minenarbeiter @color:255,255,255 "
 
 }
+Colors = {
+    Gold = " @color:255,215,0 "
+}
+
+function AddTribute( _tribute )
+	assert( type( _tribute ) == "table", "Tribut muß ein Table sein" );
+    assert( type( _tribute.text ) == "string", "Tribut.text muß ein String sein" );
+    assert( type( _tribute.cost ) == "table", "Tribut.cost muß ein Table sein" );
+	assert( type( _tribute.playerId ) == "number", "Tribut.playerId muß eine Nummer sein" );
+	assert( not _tribute.Tribute , "Tribut.Tribute darf nicht vorbelegt sein");
+ 
+	uniqueTributeCounter = uniqueTributeCounter or 1;
+	_tribute.Tribute = uniqueTributeCounter;
+	uniqueTributeCounter = uniqueTributeCounter + 1;
+ 
+	local tResCost = {};
+	for k, v in pairs( _tribute.cost ) do
+		assert( ResourceType[k] );
+		assert( type( v ) == "number" );
+		table.insert( tResCost, ResourceType[k] );
+		table.insert( tResCost, v );
+	end
+ 
+	Logic.AddTribute( _tribute.playerId, _tribute.Tribute, 0, 0, _tribute.text, unpack( tResCost ) );
+	SetupTributePaid( _tribute );
+ 
+	return _tribute.Tribute;
+end
+
+function PlaceHeroesInfrontOfNPC( npcName, hero1, hero2)
+    -- get ids
+    local npcId = Logic.GetEntityIDByName( npcName)
+    local h1Id = Logic.GetEntityIDByName( hero1)
+    local h2Id = Logic.GetEntityIDByName( hero2)
+
+    -- info about the npc
+    local pos = GetPosition(npcName)
+    local orient = Logic.GetEntityOrientation( npcId)
+
+    -- compute the offsets
+    local distance = 500
+    local dX1, dY1 = getOffsetByAngle( orient + 45)
+    local dX2, dY2 = getOffsetByAngle( orient - 45)
+    SetPosition( hero1, {X = pos.X + distance*dX1, Y = pos.Y + distance*dY1})
+    SetPosition( hero2, {X = pos.X + distance*dX2, Y = pos.Y + distance*dY2})
+    LookAt( hero1, npcName)
+    LookAt( hero2, npcName)
+    LookAt( npcName, hero1)
+end
+function getOffsetByAngle( angle)
+    local angleRad = math.rad(angle)
+    return math.cos(angleRad), math.sin(angleRad)
+end
 
 Playerswapper = {}
 Playerswapper.currId = 1
