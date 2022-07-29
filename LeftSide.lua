@@ -3,7 +3,6 @@ LeftSide.ReadyForAttack = false
 LeftSide.MercsConvinced = false
 LeftSide.TradersConvinded = false
 LeftSide.StoneConvinced = false
-LeftSide.NeutralBridge = 142973
 
 LeftSide.QUESTID_MAIN = 1
 LeftSide.QUESTID_STONE = 2
@@ -11,16 +10,70 @@ LeftSide.QUESTID_TRADER = 3
 LeftSide.QUESTID_MERC = 4
 
 function LeftSide.DoEnvironmentChanges()
-    -- here: respawn bridge properly
-    local bridgePos = GetPosition(LeftSide.NeutralBridge)
-    DestroyEntity(LeftSide.NeutralBridge)
-    LeftSide.BridgeId = Logic.CreateEntity(Entities.PB_Bridge01, bridgePos.X, bridgePos.Y, 0, 1)
+    LeftSide.BridgeId = 77965
 
     -- prepare positions for military buildings
     LeftSide.PosBarracks = GetPosition("LS_BarracksSpot")
     LeftSide.PosArchery = GetPosition("LS_ArcherySpot")
     DestroyEntity("LS_BarracksSpot")
     DestroyEntity("LS_ArcherySpot")
+
+    -- block the waterfall near stone mason stuff
+    Logic.SetModelAndAnimSet(GetEntityId("LS_WaterfallBlocker"), Models.XD_Rock1)
+
+    -- Replace all wall corners with towers
+    local allEntitiesFound = false
+    local data, pos
+    while not allEntitiesFound do
+        data = {Logic.GetPlayerEntities( 4, Entities.XD_WallCorner, 16) }
+        allEntitiesFound = data[1] == 0
+        for j = 2, data[1]+1 do
+            pos = GetPosition(data[j])
+            DestroyEntity( data[j])
+            Logic.CreateEntity( Entities.PB_DarkTower3, pos.X, pos.Y, 0, 4)
+        end
+    end
+end
+
+LeftSide.BanditArmyTroops = {
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_BanditLeaderBow1, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4},
+    {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4}
+}
+
+function LeftSide.CreateBandits()
+    LeftSide.BanditArmy = UnlimitedArmy:New{
+        Player = 3,
+        Area = 2000,
+        --TransitAttackMove
+        Formation = UnlimitedArmy.Formations.Chaotic,
+        LeaderFormation = LeaderFormatons.LF_Fight,
+        DoNotNormalizeSpeed = true
+    }
+    local spawnPos = GetPosition("LS_BanditSpawn")
+    for k,v in pairs(LeftSide.BanditArmyTroops) do
+        LeftSide.BanditArmy:CreateLeaderForArmy( v.type, v.nSol, spawnPos, VERYHIGH_EXPERIENCE)
+    end
+    LeftSide.BanditArmy:AddCommandMove( GetPosition("LS_BanditGather"), true)
+    LeftSide.BanditArmy:AddCommandWaitForIdle( true)
+    --if 1 == 1 then return true end
+    LeftSide.BanditSpawnManager = UnlimitedArmySpawnGenerator:New( LeftSide.BanditArmy, {
+        Position = spawnPos,
+        ArmySize = table.getn(LeftSide.BanditArmyTroops),
+        SpawnCounter = 5,
+        SpawnLeaders = table.getn(LeftSide.BanditArmyTroops),
+        LeaderDesc = {
+            {LeaderType = Entities.CU_Barbarian_LeaderClub2, SoldierNum = 8, SpawnNum = 20, Experience = VERYHIGH_EXPERIENCE},
+            {LeaderType = Entities.CU_BanditLeaderBow1, SoldierNum = 4, SpawnNum = 60, Experience = VERYHIGH_EXPERIENCE}
+        },
+        Generator = "LS_BanditTower",
+        RandomizeSpawn = true
+    })
 end
 
 function LeftSide.StartInitialBriefing()
@@ -73,7 +126,7 @@ function LeftSide.StartInitialBriefing()
             title = "Trefft den Agenten!",
             text = Names.Erec.." und "..Names.Pilgrim.." haben ihn Ziel fast erreicht. Besprecht mit dem "..Names.AgentDativ.." die nächsten Schritte!"
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
         CreateNPC{
             name = "LS_FarmerMajor",
             callback = LeftSide.StartFarmerBriefing
@@ -207,7 +260,7 @@ function LeftSide.StartFarmerBriefing()
             ..Names.AgentDativ..Names.MissionComplete.." die nächsten Schritte! @cr @cr @color:255,255,255 "
             .."Sucht die vom "..Names.AgentDativ.." beschriebene Position auf und gründet eine Siedlung!"
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
 
         quest = {
             id = LeftSide.QUESTID_STONE,
@@ -216,7 +269,7 @@ function LeftSide.StartFarmerBriefing()
             text = "Auf der anderen Seite des Sees liegt eine Siedlung, die für "..Names.City.." wichtige Rohstoffe "
                 .."fördert. Sprecht mit den Arbeitern und versucht, sie auf eure Seite zu ziehen!"
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 0) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 0) 
 
         quest = {
             id = LeftSide.QUESTID_TRADER,
@@ -224,7 +277,7 @@ function LeftSide.StartFarmerBriefing()
             title = "Überzeugt die Händlergilde!",
             text = "Sprecht mit den Händlern und versucht, sie auf eure Seite zu ziehen!"
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 0) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 0) 
 
         quest = {
             id = LeftSide.QUESTID_MERC,
@@ -232,7 +285,7 @@ function LeftSide.StartFarmerBriefing()
             title = "Überzeugt die Söldner!",
             text = "Sprecht mit den Söldnern und versucht, sie auf eure Seite zu ziehen!"
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 0) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 0) 
 
     end
     StartBriefing( briefing)
@@ -253,7 +306,7 @@ function LeftSide.OnArrivalAtHQ()
         .."Die Bauernsiedlung wird sich Eurem Ansturm anschließen. Sprecht mit den übrigen Dorfvorstehern und zieht mindestens zwei "
         .."weitere Siedlungen auf Eure Seite. @color:255,0,0 Ihr dürft auf keinen Fall entdeckt werden!"
     }
-    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
     ChangePlayer("LS_HQ", 2)
     ChangePlayer("LS_VC", 2)
 
@@ -323,7 +376,7 @@ function LeftSide.MercBriefing1()
     ASP("LS_MercMajor", Names.MercLeader, "Wir nehmen nur Vorkasse, aber gerne, sobald Ihr uns bezahlt habt, werden wir auf Euer Signal loslegen.", true)
     briefing.finished = function() 
         AddTribute{
-            playerId = 1,
+            playerId = 2,
             text = "Zahlt "..Colors.Gold.." 25 000 Gold @color:255,255,255 , um die Söldner auf Eure Seite zu ziehen!",
             cost = {Gold = 100},
             Callback = LeftSide.OnMercTributePaid
@@ -333,27 +386,27 @@ function LeftSide.MercBriefing1()
             type = SUBQUEST_OPEN,
             title = "Überzeugt die Söldner!",
             text = Names.MissionComplete.."Sprecht mit den Söldnern und versucht, sie auf eure Seite zu ziehen!"
-                .." @color:255,255,255 @cr Bezahlt den "..Names.Merc.." "..Colors.Gold.." 25 000 Gold @color:255,255,255 "
+                .." @color:255,255,255 @cr Bezahlt den "..Names.Mercs.." "..Colors.Gold.." 25 000 Gold @color:255,255,255 "
                 .."um sie von Eurer Sache zu überzeugen."
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
 
     end
     StartBriefing(briefing)
 end
 function LeftSide.OnMercTributePaid()
     Sound.PlayGUISound( Sounds.fanfare, 100)
-    Message("Die "..Names.Merc.." schließen sich euch an!")
+    Message("Die "..Names.Mercs.." schließen sich euch an!")
     quest = {
         id = LeftSide.QUESTID_MERC,
         type = SUBQUEST_CLOSED,
         title = "Überzeugt die Söldner!",
         text = Names.MissionComplete.."Sprecht mit den Söldnern und versucht, sie auf eure Seite zu ziehen!"
-            .." @cr Bezahlt den "..Names.Merc.." "..Colors.Gold.." 25 000 Gold "..Names.MissionComplete
+            .." @cr Bezahlt den "..Names.Mercs.." "..Colors.Gold.." 25 000 Gold "..Names.MissionComplete
             .."um sie von Eurer Sache zu überzeugen. @color:255,255,255 @cr "
             .."Glückwunsch, die Söldner haben sich Euch angeschlossen."
     }
-    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
     Logic.SetShareExplorationWithPlayerFlag( 1, 7, 1)
     Logic.SetShareExplorationWithPlayerFlag( 2, 7, 1)
     SetFriendly(1,7)
@@ -388,7 +441,7 @@ function LeftSide.TraderBriefing1()
             text = Names.MissionComplete.."Sprecht mit den Händlern und versucht, sie auf eure Seite zu ziehen!"
             .." @cr @color:255,255,255 Macht die "..Names.Bandits.."unschädlich, um die Händlergilde zu Euren Verbündeten zählen zu können!"
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 0) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 0) 
         StartSimpleJob("LeftSide_AreBanditsEliminated")
     end
     StartBriefing( briefing)
@@ -400,7 +453,7 @@ function LeftSide_AreBanditsEliminated()
     end
 end
 function LeftSide.OnBanditsEliminated()
-    Message("Glückwunsch, "..Names.Erec.." und "..Names.Pilgim.." haben die "..Names.Bandits.." besiegt!")
+    Message("Glückwunsch, "..Names.Erec.." und "..Names.Pilgrim.." haben die "..Names.Bandits.." besiegt!")
     Sound.PlayGUISound( Sounds.VoicesMentor_COMMENT_GoodPlay_rnd_03, 100)
     LeftSide.TradersConvinded = true
     LeftSide.OnSideConvinced()
@@ -412,7 +465,7 @@ function LeftSide.OnBanditsEliminated()
         .." @cr Macht die "..Names.Bandits..Names.MissionComplete.." unschädlich, um die Händlergilde zu Euren Verbündeten zählen zu können! "
         .." @cr @color:255,255,255 Glückwunsch, die Händlergilde ist auf Eurer Seite!"
     }
-    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
     Logic.SetShareExplorationWithPlayerFlag( 1, 6, 1)
     Logic.SetShareExplorationWithPlayerFlag( 2, 6, 1)
     SetFriendly(1,6)
@@ -455,29 +508,29 @@ function LeftSide.StoneBriefing1()
         SetupEstablish{
             AreaPos = "LS_BarrackPos",
             AreaSize = 2500,
-            EntitiyTypes = {
+            EntityTypes = {
                 {Entities.PB_Barracks2, 1}
             },
-            Callback = LS.OnBarracksFinished
+            Callback = LeftSide.OnBarracksFinished
         }
         SetEntityName( Logic.CreateEntity(Entities.XD_ScriptEntity, LeftSide.PosArchery.X, LeftSide.PosArchery.Y, 0, 1), "LS_ArcheryPos")
         SetupEstablish{
             AreaPos = "LS_ArcheryPos",
             AreaSize = 2500,
-            EntitiyTypes = {
+            EntityTypes = {
                 {Entities.PB_Archery2, 1}
             },
-            Callback = LS.OnArcheryFinished
+            Callback = LeftSide.OnArcheryFinished
         }
         local quest = {
             id = LeftSide.QUESTID_STONE,
             type = SUBQUEST_OPEN,
             title = "Überzeugt die Arbeitersiedlung!",
-            text = Names.MissionComplete.."Auf der anderen Seite des Sees liegt eine Siedlung, die für "..Names.City.." wichtige Rohstoffe "
+            text = Names.MissionComplete.."Auf der anderen Seite des Sees liegt eine Siedlung, die für "..Names.City..Names.MissionComplete.." wichtige Rohstoffe "
                 .."fördert. Sprecht mit den Arbeitern und versucht, sie auf eure Seite zu ziehen!"
                 .." @cr @color:255,255,255 Baut an die markierten Stellen eine Garnison und eine Schießanlage, damit die Arbeiter für den Kampf trainieren können!"
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 0) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 0) 
     end
     StartBriefing(briefing)
 end
@@ -510,7 +563,7 @@ function LeftSide.OnArcheryFinished()
     Logic.DestroyEffect(LeftSide.BuildArcheryPointer)
     Sound.PlayGUISound(Sounds.VoicesMentor_COMMENT_GoodPlay_rnd_03, 100)
 end
-function LeftSide.OnBuildingQuestCompleted() --TODO: CHANGE BUILDING IDS OVER TO 5
+function LeftSide.OnBuildingQuestCompleted() 
     local quest = {
         id = LeftSide.QUESTID_STONE,
         type = SUBQUEST_CLOSED,
@@ -520,13 +573,47 @@ function LeftSide.OnBuildingQuestCompleted() --TODO: CHANGE BUILDING IDS OVER TO
             .." @cr Baut an die markierten Stellen eine Garnison und eine Schießanlage, damit die Arbeiter für den Kampf trainieren können! "
             .." @cr @color:255,255,255 Glückwunsch, die Arbeiter trainieren nun für den Kampf und stehen Euch zur Seite!"
     }
-    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+    Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
     LeftSide.StoneConvinced = true
     Message("Gratulation, die Arbeitersiedlung steht Eurer Sache bei!")
     LeftSide.OnSideConvinced()
+
+    local buildingTypes = {
+        Entities.CB_Abbey03,
+        Entities.CB_MinerCamp1,
+        Entities.CB_MinerCamp3,
+        Entities.CB_MinerCamp5,
+        Entities.CB_MinerCamp6,
+        Entities.PB_Beautification07,
+        Entities.PB_Beautification08,
+        Entities.PB_Beautification09,
+        Entities.PB_Beautification12,
+        Entities.PB_Farm2,
+        Entities.PB_Farm3,
+        Entities.PB_IronMine3,
+        Entities.PB_Residence3,
+        Entities.PB_StoneMason2,
+        Entities.StoneMine3
+    }
+    local isInSettlement = function( _pos)
+        return  _pos.X > 30000 and _pos.Y > 9000 and _pos.Y < 24000
+    end
+    local data, pos, pId
+    for k, etype in buildingTypes do
+        data = {Logic.GetEntitiesInArea( etype, 34800, 15400, 7500, 16)}
+        for j = 2, data[1]+1 do
+            pos = GetPosition(data[j])
+            pId = GetPlayer(data[j])
+            if pId == 4 then
+                if isInSettlement(pos) then
+                    ChangePlayer( data[j], 5)
+                end
+            end
+        end
+    end
 end
 
-
+-- Call this everytime one village was convinced
 function LeftSide.OnSideConvinced()
     local count = 0
     if LeftSide.MercsConvinced then
@@ -553,6 +640,115 @@ function LeftSide.OnSideConvinced()
             .."weitere Siedlungen auf Eure Seite. @color:255,0,0 Ihr dürft auf keinen Fall entdeckt werden! @cr "
             .."@color:255,255,255 Ihr habt genüg Verbündete gefunden. Bleibt unentdeckt und wartet auf das Signal."
         }
-        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.title, 1) 
+        Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 1) 
+    end
+end
+
+
+-- Prepare stuff for handling the big city armies
+LeftSide.DefenderArmyConstitution = {
+    {type = Entities.PU_LeaderBow4, nSol = 8},
+    {type = Entities.PU_LeaderBow4, nSol = 8},
+    {type = Entities.PU_LeaderBow4, nSol = 8},
+    {type = Entities.PU_LeaderRifle1, nSol = 4},
+    {type = Entities.PU_LeaderRifle1, nSol = 4},
+    {type = Entities.PU_LeaderSword4, nSol = 8},
+    {type = Entities.PU_LeaderSword4, nSol = 8},
+    {type = Entities.PU_LeaderPoleArm4, nSol = 8},
+    {type = Entities.PU_LeaderHeavyCavalry2, nSol = 3},
+    {type = Entities.PU_LeaderHeavyCavalry2, nSol = 3},
+    {type = Entities.PV_Cannon3, nSol = 0},
+    {type = Entities.PV_Cannon4, nSol = 0}
+}
+function LeftSide.CreateBigCityArmies()
+    local recrutingBuildings = {
+        Entities.PB_Stable2,
+        Entities.PB_Archery1,
+        Entities.PB_Archery2,
+        Entities.PB_Barracks1,
+        Entities.PB_Barracks2,
+        Entities.Foundry2
+    }
+    LeftSide.CityRecruitingBuildings = {
+--[[         {
+            GetEntityId("LS_CityBarracks1"),
+            GetEntityId("LS_CityArchery1"),
+            GetEntityId("LS_CityStable1"),
+            GetEntityId("LS_CityFoundry1")
+        },
+        {
+            GetEntityId("LS_CityBarracks2"),
+            GetEntityId("LS_CityArchery2"),
+            GetEntityId("LS_CityStable2"),
+            GetEntityId("LS_CityFoundry2")
+        },
+        {
+            GetEntityId("LS_CityBarracks3"),
+            GetEntityId("LS_CityArchery3"),
+            GetEntityId("LS_CityStable3")
+        } ]]
+    }
+    local data
+    for k, eType in pairs(recrutingBuildings) do
+        data = {Logic.GetPlayerEntities( 4, eType, 10) }
+        for j = 2, data[1]+1 do
+            table.insert(LeftSide.CityRecruitingBuildings, data[j])
+        end
+    end
+    LeftSide.CityDefenders = {}
+    LeftSide.CityRecruiterManagers = {}
+    for j = 1, 3 do
+        LeftSide.CityDefenders[j] = UnlimitedArmy:New{
+            Player = 4,
+            Area = 3000,
+            --TransitAttackMove
+            Formation = UnlimitedArmy.Formations.Lines,
+            LeaderFormation = LeaderFormatons.LF_Fight,
+            DoNotNormalizeSpeed = true
+        }
+        LeftSide.CityDefenders[j]:AddCommandMove( GetPosition("LS_CityGather"..j))
+        LeftSide.CityRecruiterManagers[j] = UnlimitedArmyRecruiter:New(LeftSide.CityDefenders[j], {
+            Buildings = LeftSide.CityRecruitingBuildings,
+            ArmySize = table.getn(LeftSide.DefenderArmyConstitution),
+            UCats = {
+                {UCat = UpgradeCategories.LeaderSword, SpawnNum = 5, Looped = true},
+                {UCat = UpgradeCategories.LeaderPoleArm, SpawnNum = 5, Looped = true},
+                {UCat = UpgradeCategories.LeaderBow, SpawnNum = 5, Looped = true},
+                {UCat = UpgradeCategories.LeaderRifle, SpawnNum = 5, Looped = true},
+                --{UCat = UpgradeCategories.LeaderHeavyCavalry, SpawnNum = 5, Looped = true},
+                {UCat = UpgradeCategories.Cannon3, SpawnNum = 5, Looped = true},
+                {UCat = UpgradeCategories.Cannon4, SpawnNum = 5, Looped = true}
+            },
+            ResCheat = true,
+            RandomizeSpawn = true
+        })
+    end
+    StartSimpleJob("LeftSide_ManageCityDefenders")
+end
+LeftSide.CurrentCycleOrder = 0
+function LeftSide_ManageCityDefenders()
+    if not Counter.Tick2("LeftSide_ControlCityArmy", 5) then  return end
+    -- compute where the armies are supposed to be
+    local supposedTargets = {}
+    local jShifted 
+    for j = 1, 3 do
+        jShifted = math.mod(j + LeftSide.CurrentCycleOrder, 3)+1
+        supposedTargets[j] = GetPosition("LS_CityGather"..jShifted)
+    end
+    -- check if any army is still not at their spot
+    local areAllArmiesIdle = true
+    for j = 1, 3 do
+        if not LeftSide.CityDefenders[j]:IsIdle() then
+            areAllArmiesIdle = false
+            break
+        elseif GetDistance(LeftSide.CityDefenders[j]:GetPosition(), supposedTargets[j]) > 1000 then
+            areAllArmiesIdle = false
+            LeftSide.CityDefenders[j]:AddCommandMove( supposedTargets[j], false)
+            break
+        end
+    end
+    -- if everything worked out update cycle
+    if areAllArmiesIdle then
+        LeftSide.CurrentCycleOrder = LeftSide.CurrentCycleOrder + 1
     end
 end

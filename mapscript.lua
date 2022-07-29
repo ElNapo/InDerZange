@@ -22,10 +22,14 @@ function InitDiplomacy()
     Logic.SetShareExplorationWithPlayerFlag( 1, 2, 1)
     Logic.SetShareExplorationWithPlayerFlag( 2, 1, 1)
     SetHostile(1,3)
+    SetHostile(2,3)
+    SetHostile(2,4)
 
     SetPlayerName(3, "Banditen")
     SetPlayerName(4, "Tresernberg")
     SetPlayerName(5, "Bauernsiedlung")
+    SetPlayerName(6, "Händlergilde")
+    SetPlayerName(7, "Söldner")
     SetPlayerName(8, "Bevölkerung")
 end
 
@@ -33,12 +37,27 @@ end
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called from main script to init all resources for player(s)
 function InitResources()
+    Tools.GiveResouces(4,100000,100000,100000,100000,100000,100000)
 end
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called to setup Technology states on mission start
 function InitTechnologies()
-    ForbidTechnology(Technologies.UP1_Market)
+    ForbidTechnology(Technologies.UP1_Market, 1)
+    ForbidTechnology(Technologies.UP1_Market, 2)
+    ForbidTechnology(Technologies.UP2_Tower, 1)
+    ForbidTechnology(Technologies.UP2_Tower, 2)
+
+    for j = 1, 3 do
+        GUI.UpgradeSettlerCategory( UpgradeCategories.LeaderSword, 4) 
+        GUI.UpgradeSettlerCategory( UpgradeCategories.LeaderPoleArm, 4) 
+        GUI.UpgradeSettlerCategory( UpgradeCategories.LeaderBow, 4)
+        GUI.UpgradeSettlerCategory( UpgradeCategories.SoldierSword, 4) 
+        GUI.UpgradeSettlerCategory( UpgradeCategories.SoldierPoleArm, 4) 
+        GUI.UpgradeSettlerCategory( UpgradeCategories.SoldierBow, 4)  
+    end
+    --GUI.UpgradeSettlerCategory( UpgradeCategories.LeaderHeavyCavalry, 4)
+    --GUI.UpgradeSettlerCategory( UpgradeCategories.SoldierHeavyCavalry, 4)
 end
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -74,7 +93,9 @@ function FirstMapAction()
     Script.Load("maps//user//InDerZange//s5CommunityLib//packer//devLoad.lua")
     mcbPacker.Paths[1][1] = "maps//user//InDerZange//"
     mcbPacker.require("s5CommunityLib/comfort/entity/SVLib")
-    mcbPacker.require("s5CommunityLib/lib/UnlimitedArmy")	
+    mcbPacker.require("s5CommunityLib/lib/UnlimitedArmy")
+    mcbPacker.require("s5CommunityLib/lib/UnlimitedArmySpawnGenerator")
+    mcbPacker.require("s5CommunityLib/lib/UnlimitedArmyRecruiter")	
     TriggerFix.AllScriptsLoaded()
     -- Load and activate comforts
     Script.LoadFolder('maps//user//InDerZange//Tools')
@@ -93,6 +114,9 @@ function FirstMapAction()
 
     -- Prep environment on left side
     LeftSide.DoEnvironmentChanges()
+    LeftSide.CreateBandits()
+    LeftSide.CreateBigCityArmies()
+
     -- Prep environment on right side
     RightSide.CreateBanditCamp()
     RightSide.DecorateBanditMain()
@@ -103,18 +127,24 @@ function FirstMapAction()
 
     -- Start briefing
     RightSide.StartInitialBriefing()
-
     LeftSide.StartInitialBriefing()
+
+    CreateInfoQuest()
 
     
     -- Debug stuff
-    --Game.GameTimeSetFactor(5)
---[[     Camera.ZoomSetFactorMax(1.5)
-    Tools.GiveResouces(1,100000,100000,100000,100000,100000,100000)
-    ResearchAllUniversityTechnologies(1)
-    Tools.ExploreArea(1,1,900)
-    ResearchTechnology(Technologies.T_SuperTechnology)
- ]]
+    if 1 == 1 then
+        --Game.GameTimeSetFactor(5)
+        --Camera.ZoomSetFactorMax(1.5)
+        Tools.GiveResouces(1,100000,100000,100000,100000,100000,100000)
+        Tools.GiveResouces(2,100000,100000,100000,100000,100000,100000)
+        ResearchAllUniversityTechnologies(1)
+        ResearchAllUniversityTechnologies(2)
+        Tools.ExploreArea(1,1,900)
+        ResearchTechnology(Technologies.T_SuperTechnology, 1)
+        ResearchTechnology(Technologies.T_SuperTechnology, 2)
+    end
+
 end
 Names = {
     Yuki = " @color:70,130,180 Yuki @color:255,255,255 ",
@@ -149,6 +179,32 @@ Names = {
 Colors = {
     Gold = " @color:255,215,0 "
 }
+
+function CreateInfoQuest()
+    local infoQuestId = 8
+    local hlColor = " @color:255,69,0 "
+    local white = " @color:255,255,255 "
+    local text = "Auch in dieser Map gibt es einige Besonderheiten: @cr "
+    .."Die beiden Heldenteams sind räumlich getrennt und deswegen hat jedes Team eigene Ressourcen und Technologien. "
+    .."Möglichkeiten, Ressourcen auszutauschen, findet Ihr im Tributmenü. @cr "
+    .."Technisch wird dies darüber realisiert, dass Ihr zwei Spieler steuert und je nach Mausposition zwischen "
+    .."den Spielern gewechselt wird. Dies sollte meistens reibungslos funktionieren, aber alternativ könnt "
+    .."Ihr auch das "..hlColor.."manuelle Umschalten"..white.." aktivieren, indem Ihr "..hlColor.."[TAB]"..white.." für ungefähr eine halbe Sekunde gedrückt haltet. "
+    .."Der manuelle Modus kann deaktiviert werden, indem Ihr "..hlColor.."[TAB]"..white.." für drei Sekunden gedrückt haltet. @cr @cr "
+    .."Außerdem gibt es einige neue "..hlColor.." Hotkeys: "..white
+    .."Wenn Ihr "..hlColor.." Leertaste"..white.." drückt, werden alle Nicht-Leibeigenen und Leibeigene mit einem Hammer in der Hand aus der "
+    .."Selektion entfernt. @cr "
+    .."Wenn Ihr Truppen selektiert habt und während dem Nachkaufen"..hlColor.."[STRG]"..white.." gedrückt haltet, werden alle Truppen in der "
+    .."Selektion aufgefüllt, sofern genug Ressourcen, Platz im Dorfzentrum und geeignete Rekrutierungsgebäude in der "
+    .."Nähe existieren."
+    Logic.AddQuest( 1, infoQuestId, SUBQUEST_OPEN, "Besonderheiten", text, 0)
+    Logic.AddQuest( 2, infoQuestId, SUBQUEST_OPEN, "Besonderheiten", text, 0)
+end
+-- Refresh all troops in selection
+-- Expel all entities in selection
+-- Host is shown if player leaves
+-- Pressing [Space] deselects all serfs tasked with constructing something
+
 
 function AddTribute( _tribute )
 	assert( type( _tribute ) == "table", "Tribut muß ein Table sein" );
@@ -270,6 +326,7 @@ function Playerswapper_Job()
     if not Playerswapper.manualMode then
         local targetPlayerId = 0
         local mX, mY = GUI.Debug_GetMapPositionUnderMouse() 
+        if mX == -1 then return end
         if mY < 14000 then
             targetPlayerId = 1
         else
