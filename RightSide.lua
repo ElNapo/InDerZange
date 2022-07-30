@@ -849,7 +849,7 @@ function RightSide.ActivateNight()
     Display.GfxSetSetRainEffectStatus(1, 0.0, 1.0, 0)
     Display.GfxSetSetSnowStatus(1, 0, 1.0, 0)
     Display.GfxSetSetSnowEffectStatus(1, 0.0, 0.8, 0)
-    Display.GfxSetSetFogParams(1, 10.0, 10.0, 1, 54,54,54, 2000,10500)
+    Display.GfxSetSetFogParams(1, 10.0, 10.0, 1, 54,54,54, 20000,105000)
     Display.GfxSetSetLightParams(1,  0.0, 1.0, 40, -15, -50,  105,105,105, 0,0,0)
 end
 RightSide.FireworkCounter = -1
@@ -876,8 +876,84 @@ FXYukiFireworksFear
 FXYukiFireworksJoy ]]
 
 
+
+
 function RightSide.StartFireworks()
+    local lighttowerPos = GetPosition("RS_Lighthouse")
+    local applyOffset = function(pos, dx, dy)
+        return {X = pos.X + dx, Y = pos.Y + dy}
+    end
+    RightSide.FireworksTimetable = {
+        {t = 0, effect = GGL_Effects.FXYukiFireworksFear, pos = lighttowerPos},
+        {t = 0, effect = GGL_Effects.FXYukiFireworksJoy, pos = lighttowerPos},
+        {t = 2, effect = GGL_Effects.FXYukiFireworksFear, pos = lighttowerPos},
+        {t = 4, effect = GGL_Effects.FXYukiFireworksJoy, pos = lighttowerPos},
+        {t = 5, effect = GGL_Effects.FXMaryPoison, pos = lighttowerPos},
+        {t = 8, effect = GGL_Effects.FXLightning, pos = lighttowerPos},
+        {t = 9, effect = GGL_Effects.FXExplosionShrapnel, pos = lighttowerPos},
+        {t = 10, effect = GGL_Effects.FXExplosionShrapnel, pos = applyOffset(lighttowerPos, 750, 0)},
+        {t = 10, effect = GGL_Effects.FXExplosionShrapnel, pos = applyOffset(lighttowerPos, -750, 0)},
+        {t = 10, effect = GGL_Effects.FXExplosionShrapnel, pos = applyOffset(lighttowerPos, 0, 750)},
+        {t = 10, effect = GGL_Effects.FXExplosionShrapnel, pos = applyOffset(lighttowerPos, 0, -750)},
+        {t = 10, action = function() Logic.HurtEntity(GetEntityId("RS_Lighthouse"), 400) end},
+        
+        {t = 10, fakeEffect = "Effects_XF_HouseFire", pos = applyOffset(lighttowerPos, 0, -750)},
+        {t = 10, fakeEffect = "Effects_XF_HouseFire", pos = applyOffset(lighttowerPos, 0, 750)},
+        {t = 10, fakeEffect = "Effects_XF_HouseFire", pos = applyOffset(lighttowerPos, 750, 0)},
+        {t = 10, fakeEffect = "Effects_XF_HouseFire", pos = applyOffset(lighttowerPos, -750, 0)},
+
+        {t = 12, effect = GGL_Effects.FXCrushBuilding, pos = lighttowerPos},
+        {t = 12, effect = GGL_Effects.FXBuildingSmokeLarge, pos = lighttowerPos},
+        {t = 12, effect = GGL_Effects.FXExplosionPilgrim, pos = lighttowerPos},
+        {t = 12, action = function() Logic.HurtEntity(GetEntityId("RS_Lighthouse"), 400) end},
+
+        {t = 13, effect = GGL_Effects.FXExplosion, pos = applyOffset(lighttowerPos, -350, 0)},
+        {t = 13, effect = GGL_Effects.FXExplosion, pos = applyOffset(lighttowerPos, 350, 0)},
+        {t = 13, effect = GGL_Effects.FXExplosion, pos = applyOffset(lighttowerPos, 0, -350)},
+        {t = 13, effect = GGL_Effects.FXExplosion, pos = applyOffset(lighttowerPos, 0, 350)}
+    }
+    local radius, angle, dx, dy
+    for j = 1, 15 do
+        radius = math.sqrt(math.random())*1000
+        angle = math.random()*2*math.pi
+        dx, dy = radius*math.cos(angle), radius*math.sin(angle)
+        table.insert(RightSide.FireworksTimetable, {t = 10, fakeEffect = "Effects_XF_HouseFire", pos = applyOffset(lighttowerPos, dx, dy)})
+        table.insert(RightSide.FireworksTimetable, {t = 10, effect = GGL_Effects.FXExplosionShrapnel, pos = applyOffset(lighttowerPos, dx,dy)})
+    end
+    RightSide.FireworkTimer = 0
+    StartSimpleJob("RightSide_HandleFirework")
 end
+function RightSide_HandleFirework()
+    for k,v in pairs(RightSide.FireworksTimetable) do
+        if v.t == RightSide.FireworkTimer then
+            if v.action then
+                v.action()
+            elseif v.effect then
+                Logic.CreateEffect( v.effect, v.pos.X, v.pos.Y, 1)
+            elseif v.fakeEffect then
+                local eId = Logic.CreateEntity(Entities.XD_Rock1, v.pos.X, v.pos.Y, 0, 1)
+                Logic.SetModelAndAnimSet( eId, Models[v.fakeEffect])
+            end
+        end
+    end
+    RightSide.FireworkTimer = RightSide.FireworkTimer + 1
+    if RightSide.FireworkCounter > 20 then return true end
+end
+-- FXBuildingSmoke
+-- FXBuildingSmokeLarge
+-- FXBuildingSmokeMedium
+-- FXCrushBuilding
+-- FXExplosion
+-- FXExplosionPilgrim
+-- FXExplosionShrapnel
+-- FXFire
+-- FXFireLo
+-- FXFireMedium
+-- FXFireSmall
+-- FXLightning
+-- FXMaryPoison
+-- FXYukiFireworksFear
+-- FXYukiFireworksJoy
 function RightSide.ToggleGate()
     -- first deal with the two central cannon towers because they are annoying
     for j = 1,2 do
@@ -933,4 +1009,31 @@ function RightSide.OnSulfurPaid()
             RightSide.StartFireworks()
         end
     }
+    AP{
+        title = Names.Helias,
+        text = "Eigentlich wollten wir nur den Leuchtturm entzünden, nicht abbrennen.",
+        position = GetPosition("RS_Lighthouse"),
+        dialogCamera = false,
+        action = function()
+            DeactivateEscBlock()
+            SetupNormalWeatherGfxSet()
+        end
+    }
+    AP{
+        title = Names.Ixius,
+        text = "Ein bisschen Schwund ist immer.",
+        position = GetPosition("RS_Lighthouse")
+    }
+    AP{
+        title = Names.Helias,
+        text = "Auf in die finale Schlacht!",
+        position = GetPosition("Helias"),
+        dialogCamera = true
+    }
+
+    briefing.finished = function()
+        LeftSide.StartEndgame()
+        
+    end
+    StartBriefing(briefing)
 end

@@ -420,10 +420,10 @@ end
 UnlimitedArmyRecruiter:AStatic()
 --- @type Position[]
 UnlimitedArmyRecruiter.SpawnOffset = {
-	[Entities.PB_Barracks1] = {X=-800,Y=-300},
-	[Entities.PB_Barracks2] = {X=-800,Y=-300},
-	[Entities.PB_Archery1] = {X=-670,Y=600},
-	[Entities.PB_Archery2] = {X=-670,Y=600},
+	[Entities.PB_Barracks1] = {X=-700,Y=-350},
+	[Entities.PB_Barracks2] = {X=-700,Y=-350},
+	[Entities.PB_Archery1] = {X=-600,Y=600},
+	[Entities.PB_Archery2] = {X=-600,Y=600},
 	[Entities.PB_Stable1] = {X=-350,Y=400},
 	[Entities.PB_Stable2] = {X=-350,Y=400},
 }
@@ -437,8 +437,16 @@ function UnlimitedArmyRecruiter:CheckAddRecruitment()
 	end
 	local ep = GetPosition(id)
 	local tp = GetPosition(self.TriggerBuild)
+	local rot = Logic.GetEntityOrientation(self.TriggerBuild)
 	local off = UnlimitedArmyRecruiter.SpawnOffset[Logic.GetEntityType(self.TriggerBuild)]
-	if GetDistance(ep, {X=tp.X+off.X, Y=tp.Y+off.Y}) <= 200 then
+	if rot == 90 then
+		off.X, off.Y = -off.Y, off.X
+	elseif rot == 180 then
+		off.X, off.Y = -off.X, -off.Y
+	elseif rot == 270 then
+		off.X, off.Y = off.Y, -off.X
+	end
+	if GetDistance(ep, {X=tp.X+off.X, Y=tp.Y+off.Y}) <= 800 then
 		--- @class UnlimitedArmyRecruiterInRec
 		local t = {Id=id, Building=self.TriggerBuild}
 		table.insert(self.InRecruitment, t)

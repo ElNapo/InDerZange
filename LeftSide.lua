@@ -355,7 +355,8 @@ function LeftSide.DefeatByDiscovery()
     GUI.AddStaticNote("Ihr wurdet von den Truppen des Grafen entdeckt!")
     GUI.AddStaticNote("Ihr habt verloren!")
     Sound.PlayGUISound( Sounds.VoicesMentor_VC_YouHaveLost_rnd_01)
-    Trigger.DisableTriggerSystem(1)
+    Defeat()
+    XGUIEng.ShowWidget("GameEndScreen", 0)
 end
 
 -- Stuff related to the mercenary quest line
@@ -644,6 +645,37 @@ function LeftSide.OnSideConvinced()
     end
 end
 
+function LeftSide.DEBUG_LogLeaderSpawnPos()
+    Trigger.RequestTrigger(Events.LOGIC_EVENT_ENTITY_CREATED, "", "LeftSide_DEBUG_OnEntityCreated",1)
+    LeftSide_DEBUG_OnEntityCreated = function()
+        local eId = Event.GetEntityID()
+        if GetPlayer(eId) ~= 1 then return end
+        if Logic.IsLeader(eId) == 1 then
+            local pos = GetPosition(eId)
+            LuaDebugger.Log(Logic.GetEntityTypeName(Logic.GetEntityType(eId))..' '..eId.." created, pos:")
+            LuaDebugger.Log(pos)
+            local barrack1Data = {Logic.GetEntitiesInArea( Entities.PB_Barracks1, pos.X, pos.Y, 1000, 1) }
+            local barrackId = 0
+            if barrack1Data[1] == 0 then
+                local barrack2Data = {Logic.GetEntitiesInArea( Entities.PB_Barracks2, pos.X, pos.Y, 1000, 1) }
+                if barrack2Data[1] == 1 then
+                    barrackId = barrack2Data[2]
+                end
+            else
+                barrackId = barrack1Data[2]
+            end
+            -- barrack (most likely) found
+            if barrackId == 0 then
+                LuaDebugger.Log("No barrack found ):")
+            else
+                LuaDebugger.Log("Found barrack "..barrackId)
+                LuaDebugger.Log(GetPosition(barrackId))
+                LuaDebugger.Log("Orient: "..Logic.GetEntityOrientation(barrackId))
+                LuaDebugger.Log()
+            end
+        end
+    end
+end
 
 -- Prepare stuff for handling the big city armies
 LeftSide.DefenderArmyConstitution = {
@@ -661,33 +693,16 @@ LeftSide.DefenderArmyConstitution = {
     {type = Entities.PV_Cannon4, nSol = 0}
 }
 function LeftSide.CreateBigCityArmies()
+    Logic.CreateEntity(Entities.PB_VillageCenter3, 13900, 23000, 0, 4)
     local recrutingBuildings = {
         Entities.PB_Stable2,
         Entities.PB_Archery1,
         Entities.PB_Archery2,
         Entities.PB_Barracks1,
         Entities.PB_Barracks2,
-        Entities.Foundry2
+        Entities.PB_Foundry2
     }
-    LeftSide.CityRecruitingBuildings = {
---[[         {
-            GetEntityId("LS_CityBarracks1"),
-            GetEntityId("LS_CityArchery1"),
-            GetEntityId("LS_CityStable1"),
-            GetEntityId("LS_CityFoundry1")
-        },
-        {
-            GetEntityId("LS_CityBarracks2"),
-            GetEntityId("LS_CityArchery2"),
-            GetEntityId("LS_CityStable2"),
-            GetEntityId("LS_CityFoundry2")
-        },
-        {
-            GetEntityId("LS_CityBarracks3"),
-            GetEntityId("LS_CityArchery3"),
-            GetEntityId("LS_CityStable3")
-        } ]]
-    }
+    LeftSide.CityRecruitingBuildings = {    }
     local data
     for k, eType in pairs(recrutingBuildings) do
         data = {Logic.GetPlayerEntities( 4, eType, 10) }
@@ -715,16 +730,63 @@ function LeftSide.CreateBigCityArmies()
                 {UCat = UpgradeCategories.LeaderPoleArm, SpawnNum = 5, Looped = true},
                 {UCat = UpgradeCategories.LeaderBow, SpawnNum = 5, Looped = true},
                 {UCat = UpgradeCategories.LeaderRifle, SpawnNum = 5, Looped = true},
-                --{UCat = UpgradeCategories.LeaderHeavyCavalry, SpawnNum = 5, Looped = true},
+                {UCat = UpgradeCategories.LeaderHeavyCavalry, SpawnNum = 5, Looped = true},
                 {UCat = UpgradeCategories.Cannon3, SpawnNum = 5, Looped = true},
                 {UCat = UpgradeCategories.Cannon4, SpawnNum = 5, Looped = true}
             },
             ResCheat = true,
-            RandomizeSpawn = true
+            RandomizeSpawn = true,
+            ReorderAllowed = true
         })
     end
     StartSimpleJob("LeftSide_ManageCityDefenders")
+    Trigger.RequestTrigger(Events.LOGIC_EVENT_ENTITY_CREATED, "LeftSide_IsID4Leader", "LeftSide_OnCityLeaderCreated", 1)
+    StartSimpleJob("LeftSide_BabysitterJob")
+    LeftSide.BigCityNewLeaders = {}
 end
+-- babysitter for the unlimited army recruter
+function LeftSide_IsID4Leader()
+    local eId = Event.GetEntityID()
+    return Logic.IsLeader(eId) == 1 and GetPlayer(eId) == 4 
+end
+function LeftSide.IsArmyAndRecruiterSufficient( _recruiter)
+    local supposedNum = _recruiter.ArmySize
+    local actualNum = _recruiter.Army:GetSize( true, true) + table.getn(_recruiter.InRecruitment) + _recruiter:GetCannonBuyNum() 
+    return actualNum >= supposedNum
+end
+function LeftSide_BabysitterJob()
+    for k, eId in pairs(LeftSide.BigCityNewLeaders) do
+        local barrack = Logic.LeaderGetBarrack(eId)
+        -- first check if the leader is part of the recruiter, if it is the case => return
+        local isInRecruiter = false
+        for j = 1, 3 do
+            for k,v in pairs(LeftSide.CityRecruiterManagers[j].InRecruitment) do
+                if v.Id == eId then
+                    isInRecruiter = true
+                    break
+                end
+            end
+            if isInRecruiter then break end
+        end
+        -- if you arrive here then this leader was not recognised
+        if not isInRecruiter then
+            --LuaDebugger.Log("Leader "..eId.." at barrack "..barrack.." was not detected!")
+            local t = {Id = eId, Building = barrack}
+            for j = 1, 3 do
+                if not LeftSide.IsArmyAndRecruiterSufficient(LeftSide.CityRecruiterManagers[j]) then
+                    table.insert( LeftSide.CityRecruiterManagers[j].InRecruitment, t)
+                    return
+                end
+            end
+        end
+    end
+    LeftSide.BigCityNewLeaders = {}
+end
+function LeftSide_OnCityLeaderCreated()
+    local eId = Event.GetEntityID()
+    table.insert( LeftSide.BigCityNewLeaders, eId)
+end
+
 LeftSide.CurrentCycleOrder = 0
 function LeftSide_ManageCityDefenders()
     if not Counter.Tick2("LeftSide_ControlCityArmy", 5) then  return end
@@ -735,20 +797,28 @@ function LeftSide_ManageCityDefenders()
         jShifted = math.mod(j + LeftSide.CurrentCycleOrder, 3)+1
         supposedTargets[j] = GetPosition("LS_CityGather"..jShifted)
     end
+    -- LuaDebugger.Log(supposedTargets)
+    -- for j = 1, 3 do
+    --     LuaDebugger.Log(LeftSide.CityDefenders[j]:GetPosition())
+    -- end
     -- check if any army is still not at their spot
     local areAllArmiesIdle = true
     for j = 1, 3 do
         if not LeftSide.CityDefenders[j]:IsIdle() then
             areAllArmiesIdle = false
-            break
         elseif GetDistance(LeftSide.CityDefenders[j]:GetPosition(), supposedTargets[j]) > 1000 then
             areAllArmiesIdle = false
             LeftSide.CityDefenders[j]:AddCommandMove( supposedTargets[j], false)
-            break
         end
     end
     -- if everything worked out update cycle
     if areAllArmiesIdle then
         LeftSide.CurrentCycleOrder = LeftSide.CurrentCycleOrder + 1
     end
+end
+
+-- and now for the finale
+function LeftSide.StartEndgame()
+    EndJob(LeftSide.DefeatOnHitTrigger)
+    
 end

@@ -115,6 +115,7 @@ function FirstMapAction()
     -- Prep environment on left side
     LeftSide.DoEnvironmentChanges()
     LeftSide.CreateBandits()
+    --LeftSide.DEBUG_LogLeaderSpawnPos()
     LeftSide.CreateBigCityArmies()
 
     -- Prep environment on right side
