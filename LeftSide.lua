@@ -820,5 +820,75 @@ end
 -- and now for the finale
 function LeftSide.StartEndgame()
     EndJob(LeftSide.DefeatOnHitTrigger)
-    
+    SetupDestroy{
+        Target = "EnemyHQ",
+        Callback = LeftSide.OnHQDestroyed
+    }
+    if LeftSide.MercsConvinced then
+        LeftSide.SetupMercArmy()
+        SetHostile(7,4)
+    end
+    if LeftSide.TradersConvinded then
+        LeftSide.SetupTraderArmy()
+        SetHostile(4,6)
+    end
+    if LeftSide.StoneConvinced then
+        LeftSide.SetupStoneArmy()
+    end
+    LeftSide.SetupFarmerArmy()
+    SetHostile(4,5)
+end
+
+
+-- armies of the villages
+LeftSide.MercArmy = {
+    {type = Entities.CU_VeteranMajor, nSol = 4},
+    {type = Entities.CU_VeteranMajor, nSol = 4},
+    {type = Entities.CU_VeteranMajor, nSol = 4},
+    {type = Entities.PU_LeaderSword3, nSol = 8},
+    {type = Entities.PU_LeaderSword3, nSol = 8},
+    {type = Entities.PU_LeaderRifle2, nSol = 8},
+    {type = Entities.PU_LeaderRifle2, nSol = 8},
+    {type = Entities.PU_LeaderHeavyCavalry2, nSol = 3},
+    {type = Entities.PU_LeaderHeavyCavalry2, nSol = 3}
+
+}
+function LeftSide.SetupMercArmy()
+    LeftSide.MercArmy = UnlimitedArmy:New{
+        Player = 4,
+        Area = 4000,
+        --TransitAttackMove
+        Formation = UnlimitedArmy.Formations.Spear,
+        LeaderFormation = LeaderFormatons.LF_Fight,
+        DoNotNormalizeSpeed = true
+    }
+    LeftSide.MercArmySpawner = UnlimitedArmySpawnGenerator( LeftSide.MercArmy, {
+        Position = GetPosition("LS_MercArmySpawn"),
+        ArmySize = table.getn(LeftSide.MercArmy),
+        SpawnCounter = 60,
+        SpawnLeaders = table.getn(LeftSide.MercArmy),
+        LeaderDesc = {
+            
+        }
+        -- 			ArmySize,
+-- 			SpawnCounter,
+-- 			SpawnLeaders,
+-- 			LeaderDesc = {
+-- 				{LeaderType, SoldierNum, SpawnNum, Looped, Experience},
+-- 				--...
+-- 			},
+        
+    })
+end
+function LeftSide.SetupTraderArmy()
+end
+function LeftSide.SetupStoneArmy()
+end
+function LeftSide.SetupFarmerArmy()
+end
+
+function LeftSide.OnHQDestroyed()
+    for j = 1, 8 do
+        SetNeutral(j, 4)
+    end
 end
