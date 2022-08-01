@@ -90,16 +90,19 @@ end
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called on game start after all initialization is done
 function FirstMapAction()
-    Script.Load("maps//user//InDerZange//s5CommunityLib//packer//devLoad.lua")
-    mcbPacker.Paths[1][1] = "maps//user//InDerZange//"
+    Script.Load("maps\\user\\InDerZange\\s5CommunityLib\\packer\\devLoad.lua")
+    mcbPacker.Paths[1][1] = "maps\\user\\InDerZange\\"
     mcbPacker.require("s5CommunityLib/comfort/entity/SVLib")
     mcbPacker.require("s5CommunityLib/lib/UnlimitedArmy")
     mcbPacker.require("s5CommunityLib/lib/UnlimitedArmySpawnGenerator")
     mcbPacker.require("s5CommunityLib/lib/UnlimitedArmyRecruiter")	
     TriggerFix.AllScriptsLoaded()
+    
     -- Load and activate comforts
-    Script.LoadFolder('maps//user//InDerZange//Tools')
+    Script.LoadFolder('maps\\user\\InDerZange\\Tools')
+   
     InitMines()
+   
     ActivateBriefingsExpansion()
     ActivateAdvancedEscapeBlock()
     BRIEFING_TIMER_PER_CHAR = 0.3
@@ -109,16 +112,23 @@ function FirstMapAction()
     MakeEyecandyDestroyable()
     Playerswapper.Init()
 
-    Script.Load("maps//user//InDerZange//RightSide.lua")
-    Script.Load("maps//user//InDerZange//LeftSide.lua")
-    Script.Load("maps//user//InDerZange//Intro.lua")
+    --Script.Load("maps//user//InDerZange//RightSide.lua")
+    --Script.Load("maps//user//InDerZange//LeftSide.lua")
+    --Script.Load("maps//user//InDerZange//Intro.lua")
+    Script.Load("maps\\user\\InDerZange\\RightSide.lua")
+    Script.Load("maps\\user\\InDerZange\\LeftSide.lua")
+
+    OverwriteSetPosition();
 
     -- Prep environment on left side
     LeftSide.DoEnvironmentChanges()
     LeftSide.CreateBandits()
+   
     --LeftSide.DEBUG_LogLeaderSpawnPos()
     LeftSide.CreateBigCityArmies()
-
+    
+    
+   
     -- Prep environment on right side
     RightSide.CreateBanditCamp()
     RightSide.DecorateBanditMain()
@@ -126,13 +136,21 @@ function FirstMapAction()
     RightSide.DecorateBase()
     --RightSide.CreateBanditArmies()
     RightSide.CreateBanditArmiesUA()
-
+    
     -- Start briefing
     Intro.StartThroneRoomBriefing()
     
     
 
     CreateInfoQuest()
+
+    for i = 1,2 do
+        CreateSendCaravanTribute(i, "Wood");
+        CreateSendCaravanTribute(i, "Clay");
+        CreateSendCaravanTribute(i, "Stone");
+        CreateSendCaravanTribute(i, "Sulfur");
+        CreateSendCaravanTribute(i, "Iron");
+    end
 
     
     -- Debug stuff
@@ -180,8 +198,14 @@ Names = {
     StoneLeader = " @color:145,142,133 Minenarbeiter @color:255,255,255 ",
     Narrator = " @color:255,165,0 Erzähler @color:255,255,255 "
 }
+
 Colors = {
-    Gold = " @color:255,215,0 "
+    Gold = " @color:255,215,0 ",
+    Clay = " @color:167,107,41 ",
+    Wood = " @color:86,47,14 ",
+    Stone = " @color:139,141,122 ",
+    Iron = " @color:203,205,205 ",
+    Sulfur = " @color:237,255,33 ",
 }
 
 function CreateInfoQuest()
@@ -554,4 +578,150 @@ function GetDistance(_pos1,_pos2)
     local xDistance = (_pos1.X - _pos2.X);
     local yDistance = (_pos1.Y - _pos2.Y);
     return math.sqrt((xDistance^2) + (yDistance^2));
+end
+
+function OverwriteSetPosition()
+    -- overwrite original to spawn entities on free positions
+    function SetPosition(_entity,_position)
+        local entityId = GetEntityId(_entity)
+        --	check entity
+        assert(entityId ~= 0)
+        
+        if (Logic.IsLeader(entityId) ~= 0) then
+            assert(Logic.LeaderGetNumberOfSoldiers(entityId) == 0)
+        end
+                
+    --	collect information about entity
+        local health 		= Logic.GetEntityHealth(entityId)
+        local maxHealth 	= Logic.GetEntityMaxHealth(entityId)
+        local hurt 			= maxHealth - health;
+        local entityType 	= Logic.GetEntityType(entityId)
+        local player 		= Logic.EntityGetPlayer(entityId)
+        local name 			= Logic.GetEntityName(entityId)
+        local wasSelected	= IsEntitySelected(entityId)
+        if wasSelected then
+            GUI.DeselectEntity(entityId)
+        end
+
+    --	destroy old one
+        DestroyEntity(_entity)
+
+    --	create entity
+        local newEntityId
+        if type(_entity) == "string" then
+            newEntityId = AI.Entity_CreateFormation(player, entityType, 0, 0, _position.X, _position.Y, 0, 0, 0, 0);
+            SetEntityName(newEntityId, _entity);
+        else
+            newEntityId = AI.Entity_CreateFormation(player, entityType, 0, 0, _position.X, _position.Y, 0, 0, 0, 0);
+            SetEntityName(newEntityId, name);
+        end
+
+    --	select
+        if wasSelected then
+            GUI.SelectEntity(newEntityId)
+        end
+
+        GroupSelection_EntityIDChanged(entityId, newEntityId)
+
+        --	hurt entity
+        Logic.HurtEntity(newEntityId,hurt)
+
+        -- return new id
+        return newEntityId
+
+    end
+end
+
+function CreateSendCaravanTribute(_player, _resourceType)
+    LeftSide.TributeInfos = LeftSide.TributeInfos or {};
+    local refined = "veredelte";
+    if _player == 1 then
+        refined = "unveredelte";
+    end
+    local ressNames = {Wood="Holz", Clay="Lehm",Stone="Stein",Iron="Eisen",Sulfur="Schwefel"};
+    local text = "Zahlt "..Colors["Gold"].." 1000 Gold @color:255,255,255 und sendet eine Karawane die "..Colors[_resourceType].." 1000 "..refined.." Einheiten "..ressNames[_resourceType].." @color:255,255,255 versendet!";
+    local callback = _G["Player".._player.."Sends".._resourceType];
+    local costs = {Gold = 1000};
+    AddTribute{
+        playerId = _player,
+        text = text,
+        cost = costs,
+        Callback = callback;
+    }
+end
+
+function Player1SendsWood()
+    PlayerSendTributeCallback(1, "Wood");
+end
+function Player1SendsClay()
+    PlayerSendTributeCallback(1, "Clay");
+end
+function Player1SendsStone()
+    PlayerSendTributeCallback(1, "Stone");
+end
+function Player1SendsIron()
+    PlayerSendTributeCallback(1, "Iron");
+end
+function Player1SendsSulfur()
+    PlayerSendTributeCallback(1, "Sulfur");
+end
+function Player2SendsWood()
+    PlayerSendTributeCallback(2, "Wood");
+end
+function Player2SendsClay()
+    PlayerSendTributeCallback(2, "Clay");
+end
+function Player2SendsStone()
+    PlayerSendTributeCallback(2, "Stone");
+end
+function Player2SendsIron()
+    PlayerSendTributeCallback(2, "Iron");
+end
+function Player2SendsSulfur()
+    PlayerSendTributeCallback(2, "Sulfur");
+end
+
+function PlayerSendTributeCallback(_sender, _resourceType)
+    local receiver = 1;
+    if _sender == 1 then
+        receiver = 2;
+    end
+
+    -- recreate tribute 
+    CreateSendCaravanTribute(_sender, _resourceType);
+
+    local sendAmount = 1000;
+    local hasResources = false;
+    local failed = false;
+    if _sender == 1 then
+        if Logic.GetPlayersGlobalResource(_sender, ResourceType[_resourceType.."Raw"]) >= sendAmount then
+            Logic.SubFromPlayersGlobalResource(_sender, ResourceType[_resourceType.."Raw"], sendAmount);
+        else
+            failed = true;
+        end
+    elseif _sender == 2 then
+        local ressAmount = Logic.GetPlayersGlobalResource(_sender, ResourceType[_resourceType]) + Logic.GetPlayersGlobalResource(_sender, ResourceType[_resourceType.."Raw"]);
+        if ressAmount >= sendAmount then
+            Logic.SubFromPlayersGlobalResource(_sender, ResourceType[_resourceType], sendAmount);
+        else
+            failed = true;
+        end
+    end
+
+    if failed then
+        Message("Eure Karawane konnte nicht starten, da ihr nicht die erfordlichen Rohstoffe hattet. Ihr erhaltet Eure Taler zurück.");
+        local amountPayed = 1000;
+        AddGold(_sender, amountPayed)
+        return;
+    end
+    SendCaravan(receiver, _resourceType);
+end
+
+function SendCaravan(_receiver, _resourceType)
+    local raw = "";
+    if _receiver == 2 then
+        raw = "Raw";
+    end
+    -- delay caravan as you'd like
+    Logic.AddToPlayersGlobalResource(_receiver, ResourceType[_resourceType..raw], 1000);
 end

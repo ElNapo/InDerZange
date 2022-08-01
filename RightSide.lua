@@ -718,6 +718,11 @@ function RightSide.AgentBriefing()
             Target = "RS_BanditSteamMachine",
             Callback = RightSide.OnSteamEngineDestroyed
         }
+        CreateSendCaravanTribute(1, "Wood");
+        CreateSendCaravanTribute(1, "Clay");
+        CreateSendCaravanTribute(1, "Stone");
+        CreateSendCaravanTribute(1, "Sulfur");
+        CreateSendCaravanTribute(1, "Iron");
     end
     StartBriefing( briefing)
 end

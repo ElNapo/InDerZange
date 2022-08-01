@@ -333,6 +333,12 @@ function LeftSide.OnArrivalAtHQ()
     AddIron(2, 300)
     AddSulfur(2, 300)
     LeftSide.CreateOnAttackDefeatCondition()
+
+    CreateSendCaravanTribute(2, "Wood");
+    CreateSendCaravanTribute(2, "Clay");
+    CreateSendCaravanTribute(2, "Stone");
+    CreateSendCaravanTribute(2, "Sulfur");
+    CreateSendCaravanTribute(2, "Iron");
 end
 
 function LeftSide.CreateOnAttackDefeatCondition()
@@ -377,7 +383,7 @@ function LeftSide.MercBriefing1()
     ASP("Erec", Names.Erec, "Na gut, Ihr werdet die Summe zügig erhalten. Schlagt los, wenn der alte Leuchtturm leuchtet.", true)
     ASP("LS_MercMajor", Names.MercLeader, "Wir nehmen nur Vorkasse, aber gerne, sobald Ihr uns bezahlt habt, werden wir auf Euer Signal loslegen.", true)
     briefing.finished = function() 
-        AddTribute{
+        LeftSide.MercTributeId = AddTribute{
             playerId = 2,
             text = "Zahlt "..Colors.Gold.." 25 000 Gold @color:255,255,255 , um die Söldner auf Eure Seite zu ziehen!",
             cost = {Gold = 100},
@@ -414,6 +420,7 @@ function LeftSide.OnMercTributePaid()
     SetFriendly(1,7)
     SetFriendly(2,7)
     LeftSide.MercsConvinced = true
+    LeftSide.MercTributeId = nil;
     LeftSide.OnSideConvinced()
 end
 
@@ -444,7 +451,7 @@ function LeftSide.TraderBriefing1()
             .." @cr @color:255,255,255 Macht die "..Names.Bandits.."unschädlich, um die Händlergilde zu Euren Verbündeten zählen zu können!"
         }
         Logic.AddQuest( 2, quest.id, quest.type, quest.title, quest.text, 0) 
-        StartSimpleJob("LeftSide_AreBanditsEliminated")
+        LeftSide.AreBanditsEliminatedJobId = StartSimpleJob("LeftSide_AreBanditsEliminated")
     end
     StartBriefing( briefing)
 end
@@ -538,6 +545,7 @@ function LeftSide.StoneBriefing1()
 end
 
 function LeftSide.OnBarracksFinished()
+    if LeftSide.EndgameStarted then return end;
     LeftSide.BarracksBuilt = true
     if LeftSide.ArcheryBuilt then
         LeftSide.OnBuildingQuestCompleted()
@@ -549,9 +557,11 @@ function LeftSide.OnBarracksFinished()
     end
     ChangePlayer( data[2], 5)
     Logic.DestroyEffect(LeftSide.BuildBarrackPointer)
+    LeftSide.BuildBarrackPointer = nil;
     Sound.PlayGUISound(Sounds.VoicesMentor_COMMENT_GoodPlay_rnd_03, 100)
 end
 function LeftSide.OnArcheryFinished()
+    if LeftSide.EndgameStarted then return end;
     LeftSide.ArcheryBuilt = true
     if LeftSide.BarracksBuilt then
         LeftSide.OnBuildingQuestCompleted()
@@ -563,6 +573,7 @@ function LeftSide.OnArcheryFinished()
     end
     ChangePlayer( data[2], 5)
     Logic.DestroyEffect(LeftSide.BuildArcheryPointer)
+    LeftSide.BuildArcheryPointer = nil;
     Sound.PlayGUISound(Sounds.VoicesMentor_COMMENT_GoodPlay_rnd_03, 100)
 end
 function LeftSide.OnBuildingQuestCompleted() 
@@ -820,11 +831,41 @@ end
 
 -- and now for the finale
 function LeftSide.StartEndgame()
+    LeftSide.EndgameStarted = true;
     EndJob(LeftSide.DefeatOnHitTrigger)
     SetupDestroy{
         Target = "LS_EnemyHQ",
         Callback = LeftSide.OnHQDestroyed
     }
+
+    -- finish mercs quest line
+    if not LeftSide.MercsConvinced then
+        Logic.RemoveQuest(2, LeftSide.QUESTID_MERC, 0)
+        if LeftSide.MercTributeId then
+            Logic.RemoveTribute(2, LeftSide.MercTributeId);
+        end
+    end
+
+    -- finish traders questline
+    if not LeftSide.TradersConvinded then
+        Logic.RemoveQuest(2, LeftSide.QUESTID_TRADER, 0)
+        if LeftSide.AreBanditsEliminatedJobId then
+            EndJob(LeftSide.AreBanditsEliminatedJobId);
+        end
+    end
+
+    -- finish stone questline
+    if not LeftSide.StoneConvinced then
+        Logic.RemoveQuest(2, LeftSide.QUESTID_STONE, 0)
+    end
+    if LeftSide.BuildArcheryPointer then
+        Logic.DestroyEffect(LeftSide.BuildArcheryPointer)
+        LeftSide.BuildArcheryPointer = nil;
+    end
+    if LeftSide.BuildBarrackPointer then
+        Logic.DestroyEffect(LeftSide.BuildBarrackPointer)
+        LeftSide.BuildBarrackPointer = nil;
+    end
     if LeftSide.MercsConvinced then
         LeftSide.SetupMercArmy()
         SetHostile(7,4)
