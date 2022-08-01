@@ -102,7 +102,7 @@ function FirstMapAction()
     InitMines()
     ActivateBriefingsExpansion()
     ActivateAdvancedEscapeBlock()
-    BRIEFING_TIMER_PER_CHAR = 0.001
+    BRIEFING_TIMER_PER_CHAR = 0.3
     WarriorMPComforts.Init()
     WarriorTime.Init()
     SW.QoL.Init()
@@ -141,7 +141,7 @@ function FirstMapAction()
         Tools.GiveResouces(2,100000,100000,100000,100000,100000,100000)
         ResearchAllUniversityTechnologies(1)
         ResearchAllUniversityTechnologies(2)
-        Tools.ExploreArea(1,1,900)
+        --Tools.ExploreArea(1,1,900)
         ResearchTechnology(Technologies.T_SuperTechnology, 1)
         ResearchTechnology(Technologies.T_SuperTechnology, 2)
     end
@@ -174,8 +174,8 @@ Names = {
     MercLeader = " @color:255,215,0 Anführer der Söldner @color:255,255,255 ",
     Mercs = " @color:255,215,0 Söldner @color:255,255,255 ",
     TraderLeader = " @color:65,105,225 Gildenmeister der Händlergilde @color:255,255,255 ",
-    StoneLeader = " @color:145,142,133 Minenarbeiter @color:255,255,255 "
-
+    StoneLeader = " @color:145,142,133 Minenarbeiter @color:255,255,255 ",
+    Narrator = " @color:255,165,0 Erzähler @color:255,255,255 "
 }
 Colors = {
     Gold = " @color:255,215,0 "
@@ -290,38 +290,18 @@ function Playerswapper.OnKeyUp()
     if timeDiff < 200 then
         KeyBindings_ToggleOnScreenInformation()
     elseif timeDiff < 2500 then
-        --Message("Der Spieler wurde gewechselt.")
+        Message("Der Spieler wurde gewechselt.")
         if not Playerswapper.manualMode then
-            --Message("Der Spielerwechsel ist nun im manuellen Modus!")
+            Message("Der Spielerwechsel ist nun im manuellen Modus!")
             Playerswapper.manualMode = true
         end
         Playerswapper.SwapPlayerId(3 - Playerswapper.currId)
     else
         if Playerswapper.manualMode then
-            --Message("Der Spielerwechsel ist nun im automatischen Modus!")
+            Message("Der Spielerwechsel ist nun im automatischen Modus!")
             Playerswapper.manualMode = false
         end
     end
---[[     LuaDebugger.Log("^ was pressed")
-    if XGUIEng.IsModifierPressed(Keys.ModifierControl) == 1 then
-        LuaDebugger.Log("^+Strg was pressed.")
-        if Playerswapper.manualMode then
-            Playerswapper.manualMode = false
-            Message("Der Spielerwechsel ist nun im automatischen Modus!")
-        else
-            Playerswapper.manualMode = true
-            Message("Der Spielerwechsel ist nun im manuellen Modus!")
-            Message("Dieser kann mit [Strg]+[^] deaktiviert werden.")
-        end
-    elseif XGUIEng.IsModifierPressed(Keys.ModifierShift) == 1 then
-        LuaDebugger.Log("^+Shift was pressed.")
-        if not Playerswapper.manualMode then
-            Message("Der Spielerwechsel ist nun im manuellen Modus!")
-            Message("Dieser kann mit [Strg]+[^] deaktiviert werden.")
-            Playerswapper.manualMode = true
-        end
-        Playerswapper.SwapPlayerId(3 - Playerswapper.currId)
-    end ]]
 end
 function Playerswapper_Job()
     if not Playerswapper.manualMode then
@@ -498,7 +478,7 @@ function SpawnFromDataTable( _origin, _data, _pId)
     local x,y = _origin.X, _origin.Y
     local eIdList = {}
     for k,v in pairs(_data) do
-        eId = Logic.CreateEntity( v[1], x+v[2], y+v[3], v[4], _pId)
+        eId = Logic.CreateEntity( v[1], x+v[2], y+v[3], v[4], v[5])
         if v[5] ~= "" then
             SetEntityName( eId, v[5])
         end

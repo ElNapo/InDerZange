@@ -2,7 +2,7 @@
 WarriorMPComforts = {}
 WarriorMPComforts.ColorBlacklist = {2, 8, 10}
 WarriorMPComforts.CurrColor = 1
-WarriorMPComforts.CurrMaxZoom = 2
+WarriorMPComforts.CurrMaxZoom = 1.5
 WarriorMPComforts.MaxZoom = 2
 WarriorMPComforts.MaxZoomStepSize = 0.5
 function WarriorMPComforts.Init()

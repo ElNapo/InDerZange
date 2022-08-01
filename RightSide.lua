@@ -464,13 +464,13 @@ function RightSide.CreateInitialCaravan()
     local spawn = GetPosition("RS_SpawnPos")
     local data = {
         -- etype, offsetX, offsetY, orientation, (optional) script name
-        {Entities.PU_Hero11, 100, 0, 0, "Yuki"},
-        {Entities.PU_Hero6, -100, 0, 0, "Helias"},
-        {Entities.PU_Travelling_Salesman, 0, -200, 0, "RS_CaravanGold"},
-        {Entities.PU_Travelling_Salesman, 100, -200, 0, "RS_CaravanWood"},
-        {Entities.PU_Travelling_Salesman, -100, -200, 0, "RS_CaravanClay"},
+        {Entities.PU_Hero11, 100, 0, 0, "Yuki", 1},
+        {Entities.PU_Hero6, -100, 0, 0, "Helias", 1},
+        {Entities.PU_Travelling_Salesman, 0, -200, 0, "RS_CaravanGold", 8},
+        {Entities.PU_Travelling_Salesman, 100, -200, 0, "RS_CaravanWood", 8},
+        {Entities.PU_Travelling_Salesman, -100, -200, 0, "RS_CaravanClay", 8},
     }
-    caravanIds = SpawnFromDataTable( spawn, data, 1)
+    caravanIds = SpawnFromDataTable( spawn, data)
     -- move offset: X = -700, Y = +3700
     local pos
     for k,v in pairs(caravanIds) do

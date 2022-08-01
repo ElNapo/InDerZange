@@ -10,7 +10,7 @@ LeftSide.QUESTID_TRADER = 3
 LeftSide.QUESTID_MERC = 4
 
 function LeftSide.DoEnvironmentChanges()
-    LeftSide.BridgeId = 77965
+    LeftSide.BridgeId = 77599
 
     -- prepare positions for military buildings
     LeftSide.PosBarracks = GetPosition("LS_BarracksSpot")
@@ -149,11 +149,12 @@ function LeftSide.StartFarmerBriefing()
     ASP("Pilgrim", Names.Erec, "Es gab einen Faktor, der uns etwas verlangsamt hat.", true)
     ASP("LS_FarmerMajor", Names.FakeSpyName, "Das ist nun auch egal. Während Ihr die Landschaft genossen habt, "
         .."haben wir die Gegend erkundet und einen ausgezeichneten Platz für eine Basis gefunden.", true)
+    local hqpos =  GetPosition("LS_HQ")
     AP{
         title = Names.FakeSpyName,
         text = "Praktisch direkt hinter diesem Wald befindet sich ein nettes, abgelegenes Plätzchen. Es gibt nur einen "
             .."kleinen Nachteil: Eure Ressourcen sind begrenzt und Eisen und Schwefel müsst Ihr garnicht erst suchen gehen.",
-        position = GetPosition("LS_HQ"),
+        position = {X = hqpos.X, Y = hqpos.Y+1},
         dialogCamera = false,
         explore = 10
     }
@@ -821,7 +822,7 @@ end
 function LeftSide.StartEndgame()
     EndJob(LeftSide.DefeatOnHitTrigger)
     SetupDestroy{
-        Target = "EnemyHQ",
+        Target = "LS_EnemyHQ",
         Callback = LeftSide.OnHQDestroyed
     }
     if LeftSide.MercsConvinced then
@@ -837,11 +838,12 @@ function LeftSide.StartEndgame()
     end
     LeftSide.SetupFarmerArmy()
     SetHostile(4,5)
+    SetHostile(1,4)
 end
 
 
 -- armies of the villages
-LeftSide.MercArmy = {
+LeftSide.MercArmyLeaders = {
     {type = Entities.CU_VeteranMajor, nSol = 4},
     {type = Entities.CU_VeteranMajor, nSol = 4},
     {type = Entities.CU_VeteranMajor, nSol = 4},
@@ -855,40 +857,223 @@ LeftSide.MercArmy = {
 }
 function LeftSide.SetupMercArmy()
     LeftSide.MercArmy = UnlimitedArmy:New{
-        Player = 4,
+        Player = 7,
         Area = 4000,
         --TransitAttackMove
         Formation = UnlimitedArmy.Formations.Spear,
         LeaderFormation = LeaderFormatons.LF_Fight,
         DoNotNormalizeSpeed = true
     }
-    LeftSide.MercArmySpawner = UnlimitedArmySpawnGenerator( LeftSide.MercArmy, {
+    local leaderDescriptions = {}
+    for k,v in pairs(LeftSide.MercArmyLeaders) do
+        table.insert( leaderDescriptions, {LeaderType = v.type, SoldierNum = v.nSol, SpawnNum = 1, Looped = true, Experience = VERYHIGH_EXPERIENCE})
+    end
+    LeftSide.MercArmySpawner = UnlimitedArmySpawnGenerator:New( LeftSide.MercArmy, {
         Position = GetPosition("LS_MercArmySpawn"),
-        ArmySize = table.getn(LeftSide.MercArmy),
+        ArmySize = table.getn(LeftSide.MercArmyLeaders),
         SpawnCounter = 60,
-        SpawnLeaders = table.getn(LeftSide.MercArmy),
-        LeaderDesc = {
-            
-        }
-        -- 			ArmySize,
--- 			SpawnCounter,
--- 			SpawnLeaders,
--- 			LeaderDesc = {
--- 				{LeaderType, SoldierNum, SpawnNum, Looped, Experience},
--- 				--...
--- 			},
-        
+        SpawnLeaders = table.getn(LeftSide.MercArmyLeaders),
+        LeaderDesc = leaderDescriptions
     })
+    LeftSide.MercArmy:AddCommandMove( GetPosition("LS_EnemyHQ"), true)
+    LeftSide.MercArmy:AddCommandWaitForIdle( true)
 end
+
+LeftSide.TraderArmyTroops = {
+    {LeaderType = Entities.PU_LeaderSword4, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderSword4, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderSword4, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderBow4, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderBow4, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderBow4, SoldierNum = 8}
+}
 function LeftSide.SetupTraderArmy()
+    LeftSide.TraderArmy = UnlimitedArmy:New{
+        Player = 6,
+        Area = 4000,
+        --TransitAttackMove
+        Formation = UnlimitedArmy.Formations.Spear,
+        LeaderFormation = LeaderFormatons.LF_Fight,
+        DoNotNormalizeSpeed = true
+    }
+    for k,v in pairs(LeftSide.TraderArmyTroops) do
+        v.SpawnNum = 1
+        v.Looped = true
+        v.Experience = VERYHIGH_EXPERIENCE
+    end
+    LeftSide.TraderArmySpawner = UnlimitedArmySpawnGenerator:New( LeftSide.TraderArmy, {
+        Position = GetPosition("LS_TraderArmySpawn"),
+        ArmySize = table.getn(LeftSide.TraderArmyTroops),
+        SpawnCounter = 60,
+        SpawnLeaders = table.getn(LeftSide.TraderArmyTroops),
+        LeaderDesc = LeftSide.TraderArmyTroops
+    })
+    LeftSide.TraderArmy:AddCommandMove( GetPosition("LS_EnemyHQ"), true)
+    LeftSide.TraderArmy:AddCommandWaitForIdle( true)
 end
+
+LeftSide.StoneArmyTroops = {
+    {LeaderType = Entities.PU_LeaderPoleArm3, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderSword3, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderSword3, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderSword3, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderBow4, SoldierNum = 8},
+    {LeaderType = Entities.PU_LeaderBow4, SoldierNum = 8}
+}
 function LeftSide.SetupStoneArmy()
+    LeftSide.StoneArmy = UnlimitedArmy:New{
+        Player = 5,
+        Area = 4000,
+        --TransitAttackMove
+        Formation = UnlimitedArmy.Formations.Spear,
+        LeaderFormation = LeaderFormatons.LF_Fight,
+        DoNotNormalizeSpeed = true
+    }
+    for k,v in pairs(LeftSide.StoneArmyTroops) do
+        v.SpawnNum = 1
+        v.Looped = true
+        v.Experience = VERYHIGH_EXPERIENCE
+    end
+    LeftSide.StoneArmySpawner = UnlimitedArmySpawnGenerator:New( LeftSide.StoneArmy, {
+        Position = GetPosition("LS_StoneArmySpawn"),
+        ArmySize = table.getn(LeftSide.StoneArmyTroops),
+        SpawnCounter = 60,
+        SpawnLeaders = table.getn(LeftSide.StoneArmyTroops),
+        LeaderDesc = LeftSide.StoneArmyTroops
+    })
+    LeftSide.StoneArmy:AddCommandMove( GetPosition("LS_EnemyHQ"), true)
+    LeftSide.StoneArmy:AddCommandWaitForIdle( true)
 end
+
+LeftSide.FarmerArmyTroops = {
+    {LeaderType = Entities.PU_LeaderPoleArm2, SoldierNum = 4},
+    {LeaderType = Entities.PU_LeaderSword2, SoldierNum = 4},
+    {LeaderType = Entities.PU_LeaderSword2, SoldierNum = 4},
+    {LeaderType = Entities.PU_LeaderRifle1, SoldierNum = 4},
+    {LeaderType = Entities.PU_LeaderBow2, SoldierNum = 4},
+    {LeaderType = Entities.PU_LeaderBow2, SoldierNum = 4}
+}
 function LeftSide.SetupFarmerArmy()
+    LeftSide.FarmerArmy = UnlimitedArmy:New{
+        Player = 5,
+        Area = 4000,
+        --TransitAttackMove
+        Formation = UnlimitedArmy.Formations.Spear,
+        LeaderFormation = LeaderFormatons.LF_Fight,
+        DoNotNormalizeSpeed = true
+    }
+    for k,v in pairs(LeftSide.FarmerArmyTroops) do
+        v.SpawnNum = 1
+        v.Looped = true
+        v.Experience = LOW_EXPERIENCE
+    end
+    LeftSide.FarmerArmySpawner = UnlimitedArmySpawnGenerator:New( LeftSide.FarmerArmy, {
+        Position = GetPosition("LS_FarmerArmySpawn"),
+        ArmySize = table.getn(LeftSide.FarmerArmyTroops),
+        SpawnCounter = 60,
+        SpawnLeaders = table.getn(LeftSide.FarmerArmyTroops),
+        LeaderDesc = LeftSide.FarmerArmyTroops
+    })
+    LeftSide.FarmerArmy:AddCommandMove( GetPosition("LS_EnemyHQ"), true)
+    LeftSide.FarmerArmy:AddCommandWaitForIdle( true)
 end
 
 function LeftSide.OnHQDestroyed()
     for j = 1, 8 do
         SetNeutral(j, 4)
     end
+    local finalPos = GetPosition("LS_FinalHeroPos")
+    SetPosition("Erec", {X = finalPos.X+350, Y = finalPos.Y})
+    SetPosition("Pilgrim", {X = finalPos.X-350, Y = finalPos.Y})
+    SetPosition("Helias", {X = finalPos.X, Y = finalPos.Y+350})
+    SetPosition("Yuki", {X = finalPos.X, Y = finalPos.Y-350})
+    LookAt( "Erec", "LS_FinalHeroPos")
+    LookAt( "Pilgrim", "LS_FinalHeroPos")
+    LookAt( "Helias", "LS_FinalHeroPos")
+    LookAt( "Yuki", "LS_FinalHeroPos")
+
+    local briefing = {}
+    local AP, ASP = AddPages(briefing)
+    Display.SetRenderFogOfWar(0)
+
+    AP{
+        title = Names.Narrator,
+        text = "Und so wurde die einst uneinnehmbare Stadt "..Names.City.." doch eingenommen und "
+            ..Names.BadGuy.." für seine Taten zur Rechenschaft gezogen.",
+        position = finalPos
+    }
+    AP{
+        title = Names.Yuki,
+        text = "Lange nicht gesehen. Und "..Names.Pilgrim..", hast du abgenommen?",
+        position = GetPosition("Yuki"),
+        dialogCamera = true
+    }
+    AP{
+        title = Names.Erec,
+        text = "Siehst du, die frische Luft außerhalb der Palastmauern tut dir gut! Hab ich dir doch gesagt!",
+        position = GetPosition("Erec"),
+        dialogCamera = true
+    }
+    AP{
+        title = Names.Pilgrim,
+        text = "Ihr findet mich in der Taverne.",
+        position = GetPosition("Pilgrim"),
+        dialogCamera = true,
+        action = function()
+            Move("Pilgrim", "LS_MercArmySpawn")
+            Camera.FollowEntity(GetEntityId("Pilgrim"))
+        end
+    }
+    AP{
+        title = Names.Helias,
+        text = "Es freut mich sehr, dass Ihr alle wohlauf seid. Ist auf Eurer Seite etwas Interessantes passiert?",
+        position = GetPosition("Helias"),
+        dialogCamera = true
+    }
+    AP{
+        title = Names.Erec,
+        text = "Nur das Übliche: Banditen unschädlich gemacht, dem einfachen Volk geholfen sich selbst zu helfen und einer "
+            .."Söldnerbande die Taschen gefüllt. Und bei Euch so?",
+        position = GetPosition("Erec"),
+        dialogCamera = true
+    }
+    AP{
+        title = Names.Helias,
+        text = "Wir haben uns nur um Banditen gekümmert, dafür aber in großer Anzahl. Die wären früher oder später zu einem "
+            .."massiven Problem geworden.",
+        position = GetPosition("Helias"),
+        dialogCamera = true
+    }
+    AP{
+        title = Names.Yuki,
+        text = "Vergesst nicht "..Names.Ixius.."! Komischer Kerl, aber seine Feuerwerke sind schon was Besonderes.",
+        position = GetPosition("Yuki"),
+        dialogCamera  = true
+    }
+    AP{
+        title = Names.Helias,
+        text = "Er sollte den Leuchtturm entzünden. Nicht anzünden und komplett einebnen. Die Überreste brennen immernoch!",
+        position = GetPosition("Helias"),
+        dialogCamera = true
+    }
+    AP{
+        title = Names.Yuki,
+        text = "Künstlerische Freiheit muss sein. @cr @cr Und wir haben unser Ziel erreicht, Ihr habt das Feuer gesehen.",
+        position = GetPosition("Yuki"),
+        dialogCamera = true
+    }
+    AP{
+        title = Names.Erec,
+        text = "Ehrlich gesagt kam es mir etwas übertrieben vor, dass Ihr gleich den ganzen Turm gesprengt habt. "
+            .."@cr @cr Folgen wir Pilgrim in die Taverne?",
+        position = GetPosition("Erec"),
+        dialogCamera = true
+    }
+    briefing.finished = function()
+        Victory()
+        Sound.PlayGUISound( Sounds.VoicesMentor_VC_YouHaveWon_rnd_01, 100)
+        GUIUpdate_DisplayButtonOnlyInMode = function() end
+        XGUIEng.DisableButton("GameEndScreen_WindowReturnToGame", 0)
+    end
+    StartBriefing(briefing)
 end
