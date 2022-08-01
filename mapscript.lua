@@ -111,6 +111,7 @@ function FirstMapAction()
 
     Script.Load("maps//user//InDerZange//RightSide.lua")
     Script.Load("maps//user//InDerZange//LeftSide.lua")
+    Script.Load("maps//user//InDerZange//Intro.lua")
 
     -- Prep environment on left side
     LeftSide.DoEnvironmentChanges()
@@ -127,14 +128,15 @@ function FirstMapAction()
     RightSide.CreateBanditArmiesUA()
 
     -- Start briefing
-    RightSide.StartInitialBriefing()
-    LeftSide.StartInitialBriefing()
+    Intro.StartThroneRoomBriefing()
+    
+    
 
     CreateInfoQuest()
 
     
     -- Debug stuff
-    if 1 == 1 then
+    if 1 == 2 then
         --Game.GameTimeSetFactor(5)
         --Camera.ZoomSetFactorMax(1.5)
         Tools.GiveResouces(1,100000,100000,100000,100000,100000,100000)
@@ -156,6 +158,7 @@ Names = {
     BadGuy = " @color:136,136,136 Graf Cernunnos @color:255,255,255 ",
     BadGuyGenetiv = " @color:136,136,136 Grafen Cernunnos @color:255,255,255 ",
     --BadGuy = "Ianuarius"
+    Dario = "@color:15,64,255 Seine Majestät Dario @color:255,255,255",
     Agent = " @color:15,64,255 Agent des Nachrichtendienstes Seiner Majestät @color:255,255,255 ",
     AgentDativ = " @color:15,64,255 Agenten des Nachrichtendienstes Seiner Majestät @color:255,255,255 ",
     AgentMasked = " @color:15,64,255 Kontaktperson @color:255,255,255 ",

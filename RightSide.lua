@@ -564,6 +564,7 @@ function RightSide.StartInitialBriefing()
         }
     }
     briefing.finished = function()
+        LeftSide.StartInitialBriefing()
         CreateNPC{
             name = "RS_Spy",
             callback = RightSide.AgentBriefing

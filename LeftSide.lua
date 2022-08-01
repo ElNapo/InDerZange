@@ -1070,6 +1070,7 @@ function LeftSide.OnHQDestroyed()
         dialogCamera = true
     }
     briefing.finished = function()
+        Display.SetRenderFogOfWar(1)
         Victory()
         Sound.PlayGUISound( Sounds.VoicesMentor_VC_YouHaveWon_rnd_01, 100)
         GUIUpdate_DisplayButtonOnlyInMode = function() end
