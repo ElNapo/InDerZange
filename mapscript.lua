@@ -1,9 +1,25 @@
 --------------------------------------------------------------------------------
 -- MapName: XXX
 --
--- Author: XXX
+-- Author: NAPO RULEZ
 --
 --------------------------------------------------------------------------------
+
+
+-- TODO-List:
+-- SpielerIDS zum Finale zu einem Spieler kombinieren, alles auf Spieler 1 schieben?
+-- Briefingtimings auf DEFAULTs setzen
+-- Multiple modes of difficulty
+
+-- Endfight rebalancen
+
+-- Bugs to fix:
+--  Doppelte Türme am südlichen Tor entfernen
+--  Südteam gegen Endboss auf neutral stellen
+--  Händlerbriefings nochmal anschauen
+--  Speicherbugs prüfen?
+
+
 
 -- Include main function
 Script.Load( Folders.MapTools.."Main.lua" )
@@ -76,49 +92,66 @@ end
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called on game start and after save game to initialize player colors
 function InitPlayerColorMapping()
-        -- Give ids 1&2 player color
-        Display.SetPlayerColorMapping( 1, 1)
-        Display.SetPlayerColorMapping( 2, 1)
-        -- Give id 3 bandit color
-        Display.SetPlayerColorMapping( 3, 2)
-        -- Give id 4 kerberos color
-        Display.SetPlayerColorMapping( 4, 10)
-        -- Give id 8 light green
-        Display.SetPlayerColorMapping( 8, 8)    
+    -- Give ids 1&2 player color
+    Display.SetPlayerColorMapping( 1, 1)
+    Display.SetPlayerColorMapping( 2, 1)
+    -- Give id 3 bandit color
+    Display.SetPlayerColorMapping( 3, 2)
+    -- Give id 4 kerberos color
+    Display.SetPlayerColorMapping( 4, 10)
+    -- Give id 8 light green
+    Display.SetPlayerColorMapping( 8, 8) 
+    Logic.SetPlayerRawName(1, "Yuki & Helias")
+    Logic.SetPlayerRawName(2, "Erec & Pilgrim")  
+    for j = 1, 2 do 
+        --Logic.SetPlayerRawName( j, "Spieler "..j)
+        Logic.PlayerSetGameStateToPlaying( j)			
+		Logic.PlayerSetIsHumanFlag( j, 1)
+		--LuaDebugger.Log(j)
+    end
+    Logic.PlayerSetPlayerColor( 1, 70, 130, 180)
+    Logic.PlayerSetPlayerColor( 2, 89, 203, 232)
 end
 	
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- This function is called on game start after all initialization is done
 function FirstMapAction()
     Script.Load("maps\\user\\InDerZange\\s5CommunityLib\\packer\\devLoad.lua")
-    mcbPacker.Paths[1][1] = "maps\\user\\InDerZange\\"
+    Script.Load("data/maps/externalmap/s5CommunityLib/packer/devLoad.lua")
+    --mcbPacker.Paths[1][1] = "maps\\user\\InDerZange\\"
     mcbPacker.require("s5CommunityLib/comfort/entity/SVLib")
+	mcbPacker.require("s5CommunityLib/comfort/math/Matrix")
     mcbPacker.require("s5CommunityLib/lib/UnlimitedArmy")
     mcbPacker.require("s5CommunityLib/lib/UnlimitedArmySpawnGenerator")
     mcbPacker.require("s5CommunityLib/lib/UnlimitedArmyRecruiter")	
     TriggerFix.AllScriptsLoaded()
     
     -- Load and activate comforts
-    Script.LoadFolder('maps\\user\\InDerZange\\Tools')
-   
+    --Script.LoadFolder('data/maps/externalmap/Tools')
+    Script.LoadFolder('maps/user/InDerZange/Tools')
+	A = Matrix.New({{2,1,-1},
+					{-3,-1,2},
+					{-2,1,2}})
+	v = Vector.New({8, -11, -3})
+	
     InitMines()
    
     ActivateBriefingsExpansion()
     ActivateAdvancedEscapeBlock()
-    BRIEFING_TIMER_PER_CHAR = 0.3
+    BRIEFING_TIMER_PER_CHAR = 0.01
     WarriorMPComforts.Init()
     WarriorTime.Init()
     SW.QoL.Init()
     MakeEyecandyDestroyable()
     Playerswapper.Init()
 
-    --Script.Load("maps//user//InDerZange//RightSide.lua")
-    --Script.Load("maps//user//InDerZange//LeftSide.lua")
-    --Script.Load("maps//user//InDerZange//Intro.lua")
-    Script.Load("maps\\user\\InDerZange\\RightSide.lua")
-    Script.Load("maps\\user\\InDerZange\\LeftSide.lua")
+    local prefix = "maps//user/InDerZange//"
+    Script.Load(prefix.."Intro.lua")
+    Script.Load(prefix.."RightSide.lua")
+    Script.Load(prefix.."LeftSide.lua")
 
     OverwriteSetPosition();
+    FixTechBug()
 
     -- Prep environment on left side
     LeftSide.DoEnvironmentChanges()
@@ -137,33 +170,31 @@ function FirstMapAction()
     --RightSide.CreateBanditArmies()
     RightSide.CreateBanditArmiesUA()
     
+	if 1 == 1 then Tools.ExploreArea(1,1,900) return true end
+	
     -- Start briefing
     Intro.StartThroneRoomBriefing()
     
-    
-
     CreateInfoQuest()
-
-    for i = 1,2 do
-        CreateSendCaravanTribute(i, "Wood");
-        CreateSendCaravanTribute(i, "Clay");
-        CreateSendCaravanTribute(i, "Stone");
-        CreateSendCaravanTribute(i, "Sulfur");
-        CreateSendCaravanTribute(i, "Iron");
-    end
 
     
     -- Debug stuff
-    if 1 == 2 then
+    DEBUG_ACTIVE = true
+    DEBUG_RESS = true
+    DEBUG_TECHS = true
+    if DEBUG_ACTIVE then
         --Game.GameTimeSetFactor(5)
         --Camera.ZoomSetFactorMax(1.5)
-        Tools.GiveResouces(1,100000,100000,100000,100000,100000,100000)
-        Tools.GiveResouces(2,100000,100000,100000,100000,100000,100000)
-        ResearchAllUniversityTechnologies(1)
-        ResearchAllUniversityTechnologies(2)
-        --Tools.ExploreArea(1,1,900)
-        ResearchTechnology(Technologies.T_SuperTechnology, 1)
-        ResearchTechnology(Technologies.T_SuperTechnology, 2)
+        if DEBUG_RESS then
+            Tools.GiveResouces(1,100000,100000,100000,100000,100000,100000)
+            Tools.GiveResouces(2,100000,100000,100000,100000,100000,100000)
+        end
+        if DEBUG_TECHS then
+            ResearchAllUniversityTechnologies(1)
+            ResearchAllUniversityTechnologies(2)
+            ResearchTechnology(Technologies.T_SuperTechnology, 1)
+            ResearchTechnology(Technologies.T_SuperTechnology, 2)
+        end
     end
 
 end
@@ -355,9 +386,30 @@ function Playerswapper.SetControlledPlayer( _newId)
     GUI.SetControlledPlayer(_newId)
     Logic.ActivateUpdateOfExplorationForAllPlayers()
     gvMission.PlayerID = _newId
-    Logic.PlayerSetIsHumanFlag( oldPlayer, 0 )
-    Logic.PlayerSetIsHumanFlag( _newId, 1 )
+    --Logic.PlayerSetIsHumanFlag( oldPlayer, 0 )
+    --Logic.PlayerSetIsHumanFlag( _newId, 1 )
     Logic.PlayerSetGameStateToPlaying( _newId )
+end
+
+function FixTechBug() 
+    GUIUpdate_GlobalTechnologiesButtons_FixTechOrig = GUIUpdate_GlobalTechnologiesButtons
+    GUIUpdate_GlobalTechnologiesButtons = function(_Button, _Technology, _BuildingType)
+        GUIUpdate_GlobalTechnologiesButtons_FixTechOrig(_Button, _Technology, _BuildingType)
+        local PlayerID = GUI.GetPlayerID()
+        local TechState = Logic.GetTechnologyState(PlayerID, _Technology)
+        if TechState ~= 4 then
+            XGUIEng.HighLightButton(_Button,0)
+        end
+    end
+    GUIUpdate_TechnologyButtons_FixTechOrig = GUIUpdate_TechnologyButtons
+    GUIUpdate_TechnologyButtons = function( _bId, _tech, _bType)
+        GUIUpdate_TechnologyButtons_FixTechOrig( _bId, _tech, _bType)
+        local pId = GUI.GetPlayerID()
+        local techState = Logic.GetTechnologyState( pId, techState)
+        if techState ~= 4 then
+            XGUIEng.HighLightButton( _bId, 0)
+        end
+    end
 end
 
 function MakeEyecandyDestroyable()
@@ -505,7 +557,7 @@ function SpawnFromDataTable( _origin, _data, _pId)
     local x,y = _origin.X, _origin.Y
     local eIdList = {}
     for k,v in pairs(_data) do
-        eId = Logic.CreateEntity( v[1], x+v[2], y+v[3], v[4], v[5])
+        eId = Logic.CreateEntity( v[1], x+v[2], y+v[3], v[4], v[6])
         if v[5] ~= "" then
             SetEntityName( eId, v[5])
         end
@@ -517,7 +569,7 @@ end
 function InitMines()
     Mines_ListOfMines = {    }
     Mines_ListOfLeaders = {}
-    Mines_Range = 500
+    Mines_Range = 750
     StartSimpleJob("Mines_Job")
     Trigger.RequestTrigger( Events.LOGIC_EVENT_ENTITY_CREATED, nil, "Mines_OnEntityCreated", 1)
     Trigger.RequestTrigger( Events.LOGIC_EVENT_ENTITY_DESTROYED, nil, "Mines_OnEntityDestroyed", 1)
@@ -540,7 +592,8 @@ function Mines_Job()
         elseif Mines_ListOfMines[j].triggered then
             pId = GetPlayer(Mines_ListOfMines[j].id)
             DestroyEntity( Mines_ListOfMines[j].id)
-            Logic.CreateEntity( Entities.XD_Bomb1, Mines_ListOfMines[j].pos.X, Mines_ListOfMines[j].pos.Y, 0, pId)
+            local bombId = Logic.CreateEntity( Entities.XD_Bomb1, Mines_ListOfMines[j].pos.X, Mines_ListOfMines[j].pos.Y, 0, pId)
+            SVLib.SetEntitySize( bombId, 2.5)
             table.remove(Mines_ListOfMines, j)
         end
     end

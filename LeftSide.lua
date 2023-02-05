@@ -33,6 +33,43 @@ function LeftSide.DoEnvironmentChanges()
             Logic.CreateEntity( Entities.PB_DarkTower3, pos.X, pos.Y, 0, 4)
         end
     end
+
+    -- local p1, p2 = GetPosition("LS_Torch1"), GetPosition("LS_Torch2")
+    -- local lambdaa, interPos, eId
+    -- for j = 1, 3 do
+        -- lambdaa = (j-1) / 2
+        -- eId = Logic.CreateEntity( Entities.XD_Rock2, lambdaa*p1.X + (1-lambdaa)*p2.X, lambdaa*p1.Y + (1-lambdaa)*p2.Y, 0, 1)
+        -- Logic.SetModelAndAnimSet( eId, Models.XD_Torch)
+    -- end
+	
+end
+function LeftSide.SpawnTorchWay()
+	-- script entities:
+	-- LS_TorchSplineA0 to LS_TorchSplineA11
+	-- LS_TorchSplineB0 to LS_TorchSplineB11
+	local curveFct
+	local p0, p1, p2, p3, p4, p5, pCurve
+	local eId
+	local prefix = "LS_TorchSplineA"
+	local createTorches = function()
+		for j = 1, 9 do
+			p0 = GetPosition(prefix..(j-1))
+			p1 = GetPosition(prefix..j)
+			p4 = GetPosition(prefix..(j+1))
+			p5 = GetPosition(prefix..(j+2))
+			p2 = {X = 1.5*p1.X - 0.5*p0.X, Y = 1.5*p1.Y - 0.5*p0.Y}
+			p3 = {X = 1.5*p4.X - 0.5*p5.X, Y = 1.5*p4.Y - 0.5*p5.Y}
+			curveFct = Splines.GetBezierCurve( p1, p2, p3, p4)
+			for k = 0, 2 do
+				pCurve = curveFct(k/3)
+				eId = Logic.CreateEntity( Entities.XD_Rock1, pCurve.X, pCurve.Y, 0, 0)
+				Logic.SetModelAndAnimSet( eId, Models.XD_Torch)
+			end
+		end
+	end
+	createTorches()
+	prefix = "LS_TorchSplineB"
+	createTorches()
 end
 
 LeftSide.BanditArmyTroops = {
@@ -68,8 +105,8 @@ function LeftSide.CreateBandits()
         SpawnCounter = 5,
         SpawnLeaders = table.getn(LeftSide.BanditArmyTroops),
         LeaderDesc = {
-            {LeaderType = Entities.CU_Barbarian_LeaderClub2, SoldierNum = 8, SpawnNum = 20, Experience = VERYHIGH_EXPERIENCE},
-            {LeaderType = Entities.CU_BanditLeaderBow1, SoldierNum = 4, SpawnNum = 60, Experience = VERYHIGH_EXPERIENCE}
+            {LeaderType = Entities.CU_Barbarian_LeaderClub2, SoldierNum = 8, SpawnNum = 5, Experience = VERYHIGH_EXPERIENCE},
+            {LeaderType = Entities.CU_BanditLeaderBow1, SoldierNum = 4, SpawnNum = 40, Experience = VERYHIGH_EXPERIENCE}
         },
         Generator = "LS_BanditTower",
         RandomizeSpawn = true
@@ -156,7 +193,7 @@ function LeftSide.StartFarmerBriefing()
             .."kleinen Nachteil: Eure Ressourcen sind begrenzt und Eisen und Schwefel müsst Ihr garnicht erst suchen gehen.",
         position = {X = hqpos.X, Y = hqpos.Y+1},
         dialogCamera = false,
-        explore = 10
+        explore = 1000
     }
     ASP("Erec", Names.Erec, "Das klingt nicht so nett. Ich mag Eisen.", true)
     AP{
@@ -816,7 +853,7 @@ function LeftSide_ManageCityDefenders()
     -- check if any army is still not at their spot
     local areAllArmiesIdle = true
     for j = 1, 3 do
-        if not LeftSide.CityDefenders[j]:IsIdle() then
+        if LeftSide.CityDefenders[j].Status == UnlimitedArmy.Status.Moving then
             areAllArmiesIdle = false
         elseif GetDistance(LeftSide.CityDefenders[j]:GetPosition(), supposedTargets[j]) > 1000 then
             areAllArmiesIdle = false

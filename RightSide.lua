@@ -61,7 +61,7 @@ function RightSide.DecorateBanditMain()
     -- Randomly create traps
     -- RS_WayWaypoint1 to RS_WayWaypoint5
     local pos1, pos2, trapPos, n, length, numTraps, r1, r2
-    local lengthPerTraps = 400
+    local lengthPerTraps = 800
     for j = 1, 4 do
         local pos1 = GetPosition("RS_WayWaypoint"..j)
         local pos2 = GetPosition("RS_WayWaypoint"..(j+1))
@@ -79,7 +79,7 @@ function RightSide.DecorateBanditMain()
     local outpostPos = GetPosition("RS_BanditOutpostBombSpot")
     local range = 1500
     local r, phi
-    for j = 1, 25 do
+    for j = 1, 8 do
         phi = math.random()*2*math.pi
         r = math.sqrt(math.random())*range
         RightSide.CreateTrap( {X = outpostPos.X + r*math.cos(phi), Y = outpostPos.Y + r*math.sin(phi)})
@@ -93,24 +93,24 @@ function RightSide.CreateTrap( _pos)
     local eId
     eId = Logic.CreateEntity( Entities.XD_BuildBlockScriptEntity, _pos.X, _pos.Y, math.random()*360, 3)
     SVLib.SetInvisibility( eId, false)
-    SVLib.SetEntitySize( eId, math.random()*0.5+0.75)
+    SVLib.SetEntitySize( eId, math.random()*1.5+1.5)
     --eId = Logic.CreateEntity( Entities.PU_Hero3_Trap, _pos.X, _pos.Y, 0, 3)
     --eId = Logic.CreateEntity( Entities.PU_Hero3_TrapCannon, _pos.X, _pos.Y, 0, 3)
     --LuaDebugger.Log(GetPosition(eId))
     local listOfModels = {
-        Models.XD_DeadBush1,
-        Models.XD_GreeneryBush1,
-        Models.XD_GreeneryBush2,
-        Models.XD_GreeneryBush3,
-        Models.XD_GreeneryBush5,
+        --Models.XD_DeadBush1,
+        --Models.XD_GreeneryBush1,
+        --Models.XD_GreeneryBush2,
+        --Models.XD_GreeneryBush3,
+        --Models.XD_GreeneryBush5,
         Models.XD_MiscHaybale2,
         Models.XD_MiscSack1,
         Models.XD_MiscTrolley3,
-        Models.XD_Plant5,
-        Models.XD_Plant6,
-        Models.XD_PlantNorth3,
-        Models.XD_PlantNorth5,
-        Models.XD_PlantMoor4
+        --Models.XD_Plant5,
+        --Models.XD_Plant6,
+        --Models.XD_PlantNorth3,
+        --Models.XD_PlantNorth5,
+        --Models.XD_PlantMoor4
     }
     local nModels = table.getn(listOfModels)
 
@@ -118,7 +118,6 @@ function RightSide.CreateTrap( _pos)
     --LuaDebugger.Log(GetPosition(eId))
 
     table.insert(RightSide.ListOfTraps, eId)
-    Logic.HurtEntity( eId, 450)
     Mines_Add( eId)
 end
 RightSide.RuinCounter = 0
@@ -164,7 +163,7 @@ RightSide.BanditOutpostDefendFullStrength = {
     {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4},
     {type = Entities.CU_Barbarian_LeaderClub2, nSol = 4}
 }
-RightSide.BanditOutpostDefendMinStrength = 5
+RightSide.BanditOutpostDefendMinStrength = 2
 RightSide.BanditOutpostPatrolFullStrength = {
     {type = Entities.CU_BanditLeaderBow1, nSol = 4},
     {type = Entities.CU_BanditLeaderBow1, nSol = 4},

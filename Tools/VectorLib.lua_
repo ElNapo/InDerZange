@@ -1,0 +1,83 @@
+-- Aim: Create a small math library that simplifies a lot of settler related stuff.
+-- Implement vectors, matrices, some solver.
+-- Implement natural spline interpolation.
+
+Vector = {
+    d = 0,
+    data = {},
+    isVector = true
+}
+
+-- todo: maybe some check if args are alright?
+function Vector:new( rawData)
+    local myVec = {}
+    setmetatable( myVec, self)
+    self.__index = self
+    myVec.d = table.getn( rawwData)
+    myVec.data = rawData
+    return myVec
+end
+function Vector:Zeros(n)
+    local rawData = {}
+    for j = 1, n do
+        rawData[j] = 0
+    end
+    return Vector:new(rawData)
+end
+function Vector:newByPosTable( _pos)
+    return self:new( {_pos.X, _pos.Y})
+end
+
+function Vector:__add( toAdd)
+    if type(toAdd) == "number" then
+        local toRet = self:Zeros( self.d)
+        for j = 1, self.d do
+            toRet.data[j] = self.data[j] + toAdd
+        end
+        return toRet
+    elseif toAdd.isVector then
+        assert( toAdd.d == self.d, "Dimension mismatch while adding vectors!")
+        local toRet = self:Zeros( self.d)
+        for j = 1, self.d do
+            toRet.data[j] = self.data[j] + toAdd.data[j]
+        end
+        return toRet
+    end
+end
+
+function Vector:__mul( toAdd)
+    if type(toAdd) == "number" then
+        local toRet = self:Zeros( self.d)
+        for j = 1, self.d do
+            toRet.data[j] = self.data[j] * toAdd
+        end
+        return toRet
+    elseif toAdd.isVector then
+        assert( toAdd.d == self.d, "Dimension mismatch while adding vectors!")
+        local toRet = 0
+        for j = 1, self.d do
+            toRet = toRet + self.data[j] * toAdd.data[j]
+        end
+        return toRet
+    end
+end
+
+function Vector:__sub( toSub)
+    return self + toSub * (-1)
+end
+
+function Vector:__lt( threshold)
+    local toRet = 0
+    for j = 1, self.d do
+        toRet = toRet + self.data[j]*self.data[j]
+    end
+    return math.sqrt(toRet) < threshold
+end
+function Vector:__le( threshold)
+    local toRet = 0
+    for j = 1, self.d do
+        toRet = toRet + self.data[j]*self.data[j]
+    end
+    return math.sqrt(toRet) <= threshold
+end
+
